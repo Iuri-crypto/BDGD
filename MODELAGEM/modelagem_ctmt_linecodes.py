@@ -38,6 +38,8 @@ class DatabaseQuery:
                 SELECT 
                         ssdmt.ctmt,
                         ssdmt.tip_cnd,
+                        ssdmt.fas_con,
+                        ssdmt.comp,
                         (SELECT r1 FROM segcon WHERE segcon.cod_id = ssdmt.tip_cnd LIMIT 1) AS r1
                         (SELECT x1 FROM segcon WHERE segcon.cod_id = ssdmt.tip_cnd LIMIT 1) AS x1
                         (SELECT cnom FROM segcon WHERE segcon.cod_id = ssdmt.tip_cnd LIMIT 1) AS cnom
@@ -65,14 +67,14 @@ class DatabaseQuery:
 
         # Iterar sobre os dados e gerar uma subpasta para cada CTMT
         for index, linha in enumerate(dados):
-            cod_id = linha[0]
-            pac_1 = linha[1]
-            pac_2 = linha[2]
-            ctmt = linha[3] # Este é o campo que será utilizado para criar a subpasta
-            fas_con = linha[4]
-            comp = linha[5]
-            tip_cnd = linha[6]
-            shape = linha[7]
+            ctmt = linha[0] # Este é o campo que será utilizado para criar a subpasta
+            tip_cnd = linha[1]
+            fas_con = linha[2]
+            comp = linha[3]
+            r1 = linha[4]
+            x1 = linha[5]
+            cnom = linha[6]
+            cmax_renamed = linha[7]
 
             # Verificar se o ctmt já foi processado
             if ctmt not in ctmts_processados:
@@ -81,7 +83,7 @@ class DatabaseQuery:
                 os.makedirs(ctmt_folder, exist_ok=True)
 
                 # Criar o novo arquivo .dss para este ctmt
-                file_path = os.path.join( ctmt_folder, 'lines.dss')
+                file_path = os.path.join( ctmt_folder, 'linecodes.dss')
                 file = open(file_path, 'w')
 
                 # Adicionar o ctmt ao dicionario de ctmts processados (armazena o arquivo aberto)
@@ -92,46 +94,35 @@ class DatabaseQuery:
                 file = ctmts_processados[ctmt]
 
             # Gerar o comando para cada linha
-            if fas_con == 'ABC':
-                command_line = f"""
-                ! Lines-ctmt: {ctmt}
-                New line.{index} Phases=3 Bus1={pac_1}.1.2.3 Bus2={pac_2}.1.2.3 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
+            if len(fas_con) == 3:
+                command_linecode = f"""
+               ! Linecode-ctmt: {ctmt}
+                New linecode.{tip_cnd} nphases=3 BaseFreq=60
+                ~r1={r1}
+                ~x1={x1}
+                ~c1={0}
                 """
-            elif fas_con == 'AB':
-                command_line = f"""
-                ! Lines-ctmt: {ctmt}
-                New line.{index} Phases=2 Bus1={pac_1}.1.2 Bus2={pac_2}.1.2 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
+            elif len(fas_con) == 2:
+                command_linecode = f"""
+               ! Linecode-ctmt: {ctmt}
+                New linecode.{tip_cnd} nphases=2 BaseFreq=60
+                ~r1={r1}
+                ~x1={x1}
+                ~c1={0}
                 """
-            elif fas_con == 'AC':
-                command_line = f"""
-                ! Lines-ctmt: {ctmt}
-                New line.{index} Phases=2 Bus1={pac_1}.1.3 Bus2={pac_2}.1.3 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
-                """
-            elif fas_con == 'BC':
-                command_line = f"""
-                ! Lines-ctmt: {ctmt}
-                New line.{index} Phases=2 Bus1={pac_1}.2.3 Bus2={pac_2}.2.3 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
-                """
-            elif fas_con == 'A':
-                command_line = f"""
-                ! Lines-ctmt: {ctmt}
-                New line.{index} Phases=1 Bus1={pac_1}.1 Bus2={pac_2}.1 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
-                """
-            elif fas_con == 'B':
-                command_line = f"""
-                ! Lines-ctmt: {ctmt}
-                New line.{index} Phases=1 Bus1={pac_1}.2 Bus2={pac_2}.2 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
-                """
-            elif fas_con == 'C':
-                command_line = f"""
-                ! Lines-ctmt: {ctmt}
-                New line.{index} Phases=1 Bus1={pac_1}.3 Bus2={pac_2}.3 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
+            elif len(fas_con) == 1:
+                command_linecode = f"""
+                ! Linecode-ctmt: {ctmt}
+                New linecode.{tip_cnd} nphases=1 BaseFreq=60
+                ~r1={r1}
+                ~x1={x1}
+                ~c1={0}
                 """
             else:
                 continue  # Caso não seja nenhuma das opções, ignora e continua
             # Escrever o comando no arquivo.dss
             if file:
-                file.write(command_line)
+                file.write(command_linecode)
 
         # Fechar todos os arquivos antes de terminar o loop
         for file in ctmts_processados.values():
