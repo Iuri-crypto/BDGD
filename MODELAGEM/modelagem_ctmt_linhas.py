@@ -1,5 +1,6 @@
 import psycopg2
 import py_dss_interface
+import os # Para manipuação de arquivos e pastas
 
 dss = py_dss_interface.DSSDLL()
 
@@ -49,61 +50,85 @@ class DatabaseQuery:
         """Cria comandos no formato desejado para o OpenDSS"""
         dados = self.consulta_banco()
 
-        # Caminho completo do lines.dss no diretorio C:\
-        file_path = r'C:\modelagem_linhas\lines.dss'
+        # Caminho principal para salvar as subpastas
+        base_dir = r'C:\modelagem_linhas'
 
-        # Abrir arquivo dss para escrever os comandos
-        with open(file_path, 'w') as f:
-            for index, linha in enumerate(dados):
-                cod_id = linha[0]
-                pac_1 = linha[1]
-                pac_2 = linha[2]
-                ctmt = linha[3]
-                fas_con = linha[4]
-                comp = linha[5]
-                tip_cnd = linha[6]
-                shape = linha[7]
+        # Lista para armazenar os ctmt já processados
+        ctmts_processados = {}
 
-                if fas_con == 'ABC':
-                    command_line = f"""
-                    ! Lines
-                    New line.{index} Phases=3 Bus1={pac_1}.1.2.3 Bus2={pac_2}.1.2.3 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
-                    """
-                elif fas_con == 'AB':
-                    command_line = f"""
-                    ! Lines
-                    New line.{index} Phases=2 Bus1={pac_1}.1.2 Bus2={pac_2}.1.2 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
-                    """
-                elif fas_con == 'AC':
-                    command_line = f"""
-                    ! Lines
-                    New line.{index} Phases=2 Bus1={pac_1}.1.3 Bus2={pac_2}.1.3 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
-                    """
-                elif fas_con == 'BC':
-                    command_line = f"""
-                    ! Lines
-                    New line.{index} Phases=2 Bus1={pac_1}.2.3 Bus2={pac_2}.2.3 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
-                    """
-                elif fas_con == 'A':
-                    command_line = f"""
-                    ! Lines
-                    New line.{index} Phases=1 Bus1={pac_1}.1 Bus2={pac_2}.1 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
-                    """
-                elif fas_con == 'B':
-                    command_line = f"""
-                    ! Lines
-                    New line.{index} Phases=1 Bus1={pac_1}.2 Bus2={pac_2}.2 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
-                    """
-                elif fas_con == 'C':
-                    command_line = f"""
-                    ! Lines
-                    New line.{index} Phases=1 Bus1={pac_1}.3 Bus2={pac_2}.3 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
-                    """
-                else:
-                    continue  # Caso não seja nenhuma das opções, ignora e continua
-                # Escrever o comando no arquivo.dss
-                f.write(command_line)
+        # Iterar sobre os dados e gerar uma subpasta para cada CTMT
+        for index, linha in enumerate(dados):
+            cod_id = linha[0]
+            pac_1 = linha[1]
+            pac_2 = linha[2]
+            ctmt = linha[3] # Este é o campo que será utilizado para criar a subpasta
+            fas_con = linha[4]
+            comp = linha[5]
+            tip_cnd = linha[6]
+            shape = linha[7]
 
+            # Verificar se o ctmt já foi processado
+            if ctmt not in ctmts_processados:
+                # Se o ctmt não foi processado ainda, criar uma nova pasta para o ctmt
+                ctmt_folder = os.path.join(base_dir, str(ctmt))
+                os.makedirs(ctmt_folder, exist_ok=True)
+
+                # Criar o novo arquivo .dss para este ctmt
+                file_path = os.path.join( ctmt_folder, 'lines.dss')
+                file = open(file_path, 'w')
+
+                # Adicionar o ctmt ao dicionario de ctmts processados (armazena o arquivo aberto)
+                ctmts_processados[ctmt] = file
+
+            else:
+                # Se o ctmt já foi processado, usar o arquivo existente e abrir no modo append ('a')
+                file = ctmts_processados[ctmt]
+
+            # Gerar o comando para cada linha
+            if fas_con == 'ABC':
+                command_line = f"""
+                ! Lines-ctmt: {ctmt}
+                New line.{index} Phases=3 Bus1={pac_1}.1.2.3 Bus2={pac_2}.1.2.3 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
+                """
+            elif fas_con == 'AB':
+                command_line = f"""
+                ! Lines-ctmt: {ctmt}
+                New line.{index} Phases=2 Bus1={pac_1}.1.2 Bus2={pac_2}.1.2 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
+                """
+            elif fas_con == 'AC':
+                command_line = f"""
+                ! Lines-ctmt: {ctmt}
+                New line.{index} Phases=2 Bus1={pac_1}.1.3 Bus2={pac_2}.1.3 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
+                """
+            elif fas_con == 'BC':
+                command_line = f"""
+                ! Lines-ctmt: {ctmt}
+                New line.{index} Phases=2 Bus1={pac_1}.2.3 Bus2={pac_2}.2.3 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
+                """
+            elif fas_con == 'A':
+                command_line = f"""
+                ! Lines-ctmt: {ctmt}
+                New line.{index} Phases=1 Bus1={pac_1}.1 Bus2={pac_2}.1 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
+                """
+            elif fas_con == 'B':
+                command_line = f"""
+                ! Lines-ctmt: {ctmt}
+                New line.{index} Phases=1 Bus1={pac_1}.2 Bus2={pac_2}.2 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
+                """
+            elif fas_con == 'C':
+                command_line = f"""
+                ! Lines-ctmt: {ctmt}
+                New line.{index} Phases=1 Bus1={pac_1}.3 Bus2={pac_2}.3 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
+                """
+            else:
+                continue  # Caso não seja nenhuma das opções, ignora e continua
+            # Escrever o comando no arquivo.dss
+            if file:
+                file.write(command_line)
+
+        # Fechar todos os arquivos antes de terminar o loop
+        for file in ctmts_processados.values():
+            file.close()
 
     def close(self):
         """Fecha a conexão com o banco de dados"""
