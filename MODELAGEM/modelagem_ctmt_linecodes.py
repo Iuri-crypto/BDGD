@@ -40,9 +40,9 @@ class DatabaseQuery:
                         ssdmt.tip_cnd,
                         ssdmt.fas_con,
                         ssdmt.comp,
-                        (SELECT r1 FROM segcon WHERE segcon.cod_id = ssdmt.tip_cnd LIMIT 1) AS r1
-                        (SELECT x1 FROM segcon WHERE segcon.cod_id = ssdmt.tip_cnd LIMIT 1) AS x1
-                        (SELECT cnom FROM segcon WHERE segcon.cod_id = ssdmt.tip_cnd LIMIT 1) AS cnom
+                        (SELECT r1 FROM segcon WHERE segcon.cod_id = ssdmt.tip_cnd LIMIT 1) AS r1,
+                        (SELECT x1 FROM segcon WHERE segcon.cod_id = ssdmt.tip_cnd LIMIT 1) AS x1,
+                        (SELECT cnom FROM segcon WHERE segcon.cod_id = ssdmt.tip_cnd LIMIT 1) AS cnom,
                         (SELECT cmax_renamed FROM segcon WHERE segcon.cod_id = ssdmt.tip_cnd LIMIT 1) AS cmax_renamed
                 FROM 
                     ssdmt;       
@@ -101,6 +101,8 @@ class DatabaseQuery:
                 ~r1={r1}
                 ~x1={x1}
                 ~c1={0}
+                ~Normamps = {cnom}
+                ~Emergamps = {cmax_renamed}
                 """
             elif len(fas_con) == 2:
                 command_linecode = f"""
@@ -109,6 +111,8 @@ class DatabaseQuery:
                 ~r1={r1}
                 ~x1={x1}
                 ~c1={0}
+                ~Normamps = {cnom}
+                ~Emergamps = {cmax_renamed}                
                 """
             elif len(fas_con) == 1:
                 command_linecode = f"""
@@ -117,6 +121,8 @@ class DatabaseQuery:
                 ~r1={r1}
                 ~x1={x1}
                 ~c1={0}
+                ~Normamps = {cnom}
+                ~Emergamps = {cmax_renamed}
                 """
             else:
                 continue  # Caso não seja nenhuma das opções, ignora e continua
