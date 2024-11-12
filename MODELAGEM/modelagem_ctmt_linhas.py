@@ -4,18 +4,18 @@ import py_dss_interface
 dss = py_dss_interface.DSSDLL()
 
 class DatabaseQuery:
-    def __init__(self, host, port, dbname, user, password):
+    def __init__(self, dbhost, dbport, dbdbname, dbuser, dbpassword):
         """Inicializa os parâmetros de conexão"""
-        self.host = host
-        self.port = port
-        self.dbname = dbname
-        self.user = user
-        self.password = password
+        self.host = dbhost
+        self.port = dbport
+        self.dbname = dbdbname
+        self.user = dbuser
+        self.password = dbpassword
         self.conn = None
         self.cur = None
 
     def connect(self):
-        """Estabelece a conexão com o banco de dados PostgreSQL"""
+        """ Estabelece a conexão com o banco de dados PostgreSQL """
         try:
             self.conn = psycopg2.connect(
                 dbname=self.dbname,
@@ -79,7 +79,7 @@ class DatabaseQuery:
                     ! Lines
                     New line.{index} Phases=2 Bus1={pac_1}.1.3 Bus2={pac_2}.1.3 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
                     """
-                elif fas_con == 'CB':
+                elif fas_con == 'BC':
                     command_line = f"""
                     ! Lines
                     New line.{index} Phases=2 Bus1={pac_1}.2.3 Bus2={pac_2}.2.3 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
