@@ -23,7 +23,7 @@ layers = [
 db_params = {
     "host": "localhost",
     "user": "iuri",
-    "dbname": "bdgd_alimentador",
+    "dbname": "bdgd_2023",
     "password": "aa11bb22"
 }
 
@@ -33,7 +33,7 @@ def convert_layer(layer_name):
         ogr2ogr_cmd = (
             f'ogr2ogr -f "PostgreSQL" '
             f'PG:"host={db_params["host"]} user={db_params["user"]} dbname={db_params["dbname"]} password={db_params["password"]}" '
-            f'"C:\\Users\\Lucas\\Desktop\\ARQUIVOs_DE_TERCEIROS\\Energisa_MT_405_2022-12-31_V11_20230820-1800.gdb" '
+            f'"C:\\Energisa_MT_405_2023-12-31_V11_20240612-1317.gdb" '
             f'-nln {layer_name} -lco COLUMN_TYPES=cmax_renamed=Float8 '
             f'-sql "SELECT cod_id, dist, geom_cab, form_cab, mat_fas_1, mat_fas_2, mat_fas_3, mat_neu, iso_fas_1, iso_fas_2, iso_fas_3, iso_neu, cnd_fas, r1, x1, ftrcnv, cnom, cmax AS cmax_renamed, tuc_fas, a1_fas, a2_fas, a3_fas, a4_fas, a5_fas, a6_fas, tuc_neu, a1_neu, a2_neu, a3_neu, a4_neu, a5_neu, a6_neu, descr, bit_fas_1, bit_fas_2, bit_fas_3, bit_neu, r_regul, uar FROM {layer_name}"'
         )
@@ -42,7 +42,7 @@ def convert_layer(layer_name):
         ogr2ogr_cmd = (
             f'ogr2ogr -f "PostgreSQL" '
             f'PG:"host={db_params["host"]} user={db_params["user"]} dbname={db_params["dbname"]} password={db_params["password"]}" '
-            f'"C:\\Users\\Lucas\\Desktop\\ARQUIVOs_DE_TERCEIROS\\Energisa_MT_405_2022-12-31_V11_20230820-1800.gdb" '
+            f'"C:\\Energisa_MT_405_2023-12-31_V11_20240612-1317.gdb" '
             f'-nln {layer_name} -lco COLUMN_TYPES=cmax_renamed=Float8 '
             f'-sql "SELECT * FROM {layer_name}"'  # Seleciona todas as colunas
         )
