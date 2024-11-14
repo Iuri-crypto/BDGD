@@ -14,8 +14,8 @@ layers = [
     "EP", "EQCR", "EQME", "EQRE", "EQSE", "EQTRAT", "EQTRM", "EQTRMT",
     "PIP", "PNT", "PONNOT", "PT", "RAMLIG", "SSDAT", "SSDBT",
     "SSDMT", "SUB", "UNCRAT", "UNCRBT", "UNCRMT", "UNREAT", "UNREMT",
-    "UNSEAT", "UNSEBT", "UNSEMT", "UNTRMT", "UNTRAT", "UCAT", "UCBT",
-    "UCMT", "UGAT", "UGBT", "UGMT"
+    "UNSEAT", "UNSEBT", "UNSEMT", "UNTRMT", "UNTRAT", "UCAT_tab", "UCBT_tab",
+    "UCMT_tab", "UGAT_tab", "UGBT_tab", "UGMT_tab"
 ]
 
 # Configurações do banco de dados PostgreSQL
@@ -41,7 +41,7 @@ def convert_layer(layer_name):
         ogr2ogr_cmd = (
             f'ogr2ogr -f "PostgreSQL" '
             f'PG:"host={db_params["host"]} user={db_params["user"]} dbname={db_params["dbname"]} password={db_params["password"]}" '
-            f'"C:\\Energisa_MT_405_2022-12-31_V11_20230820-1800.gdb" '  # Substitua pelo caminho correto do seu arquivo GDB
+            f'"C:\\Energisa_MT_405_2023-12-31_V11_20240612-1317.gdb" '  # Substitua pelo caminho correto do seu arquivo GDB
             f'-nln {layer_name} '  # Nome da camada no banco de dados
             f'-lco GEOMETRY_NAME=Shape '  # Nome da coluna de geometria
             f'-lco OVERWRITE=YES '  # Substitui tabelas existentes no PostgreSQL
@@ -74,4 +74,3 @@ elapsed_time = end_time - start_time
 
 print(f"Conversão de todas as camadas concluída em {elapsed_time:.2f} segundos.")
 
-0
