@@ -35,7 +35,7 @@ class DatabaseQuery:
         try:
             # Consulta a tabela SSDMT para extrair as colunas especificadas
             query = """
-                SELECT cod_id, pac_1, pac_2, ctmt, fas_con, comp, tip_cnd, shape
+                SELECT cod_id, pac_1, pac_2, ctmt, fas_con, comp, tip_cnd, wkb_geometry
                 FROM ssdmt;
             """
             # Executa a consulta
@@ -143,7 +143,7 @@ if __name__ == "__main__":
     # Parâmetros de conexão
     host = 'localhost'
     port = '5432'
-    dbname = 'bdgd'
+    dbname = 'BDGD_2023_ENERGISA'
     user = 'iuri'
     password = 'aa11bb22'
 
