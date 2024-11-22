@@ -48,21 +48,23 @@ class DataBaseQuery:
             """
             query = """
                 SELECT 
-                        untrmt.wkb_geometry,
-                        untrmt.cod_id,
-                        untrmt.pac_1,
-                        untrmt.pac_2,
-                        untrmt.ctmt,
-                        (SELECT pot_nom FROM eqtrmt WHERE eqtrmt.ctmt = untrmt.cod_id LIMIT 1) AS pot_nom,
-                        (SELECT lig FROM eqtrmt WHERE eqtrmt.ctmt = untrmt.cod_id LIMIT 1) AS lig,
-                        (SELECT ten_pri FROM eqtrmt WHERE eqtrmt.ctmt = untrmt.cod_id LIMIT 1) AS ten_pri,
-                        (SELECT ten_sec FROM eqtrmt WHERE eqtrmt.ctmt = untrmt.cod_id LIMIT 1) AS ten_sec,
-                        (SELECT lig_fas_p FROM eqtrmt WHERE eqtrmt.ctmt = untrmt.cod_id LIMIT 1) AS lig_fas_p,
-                        (SELECT lig_fas_s FROM eqtrmt WHERE eqtrmt.ctmt = untrmt.cod_id LIMIT 1) AS lig_fas_s,
-                        (SELECT r FROM eqtrmt WHERE eqtrmt.ctmt = untrmt.cod_id LIMIT 1) AS r,
-                        (SELECT xhl FROM eqtrmt WHERE eqtrmt.ctmt = untrmt.cod_id LIMIT 1) AS xhl     
+                    untrmt.wkb_geometry,
+                    untrmt.cod_id,
+                    untrmt.pac_1,
+                    untrmt.pac_2,
+                    untrmt.ctmt,
+                    eqtrmt.pot_nom,
+                    eqtrmt.lig,
+                    eqtrmt.ten_pri,
+                    eqtrmt.ten_sec,
+                    eqtrmt.lig_fas_p,
+                    eqtrmt.lig_fas_s,
+                    eqtrmt.r,
+                    eqtrmt.xhl     
                 FROM 
-                    untrmt;   
+                    untrmt
+                LEFT JOIN 
+                    eqtrmt ON eqtrmt.uni_tr_mt = untrmt.cod_id
             """
             # Executa a consulta
             self.cur.execute(query)
@@ -102,6 +104,25 @@ class DataBaseQuery:
                 # Se o ctmt não foi processado ainda, criar uma nova pasta para o ctmt
                 ctmt_folder = os.path.join(base_dir, str(ctmt))
                 os.makedirs(ctmt_folder, exist_ok=True)
+
+                # Criar o novo arquivo .dss para este ctmt
+                file_path = os.path.join(ctmt_folder, 'transformers.dss')
+                file = open(file_path, 'w')
+
+                # Adicionar o ctmt ao dicionario de ctmts processados (armazena o arquivo aberto)
+                ctmts_processados[ctmt] = file
+
+            else:
+                # Se o ctmt já foi processado, usar o arquivo existente e abrir no modo append ('a')
+                file = ctmts_processados[ctmt]
+
+            # Gerar o comando para cada linha
+            command_transformers = f"""
+            ! Transformer-ctmt: {ctmt}
+            New Transformer.{cod_id} Phases={} Windings=2 xhl={} 
+            ~ wdg=1 bus={pac_1} conn={} kv={} Kva={} %r={}
+            ~ wdg=2 bus={pac_2} conn={} kv={} Kva={} %r={}
+            """
 
 
 # Uso da classe
