@@ -62,7 +62,7 @@ class DatabaseQuery:
         # Caminho principal para salvar as subpastas
         base_dir = r'C:\modelagem_linecodes'
 
-        # Lista para armazenar os ctmt já processados
+        # Dicionário para armazenar os ctmt já processados
         ctmts_processados = {}
 
         # Iterar sobre os dados e gerar uma subpasta para cada CTMT
