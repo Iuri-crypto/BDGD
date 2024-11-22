@@ -88,37 +88,37 @@ class DatabaseQuery:
             if fas_con == 'ABC':
                 command_line = f"""
                 ! Lines-ctmt: {ctmt}
-                New line.{index} Phases=3 Bus1={pac_1}.1.2.3 Bus2={pac_2}.1.2.3 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
+                New line.{cod_id} Phases=3 Bus1={pac_1}.1.2.3 Bus2={pac_2}.1.2.3 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
                 """
             elif fas_con == 'AB':
                 command_line = f"""
                 ! Lines-ctmt: {ctmt}
-                New line.{index} Phases=2 Bus1={pac_1}.1.2 Bus2={pac_2}.1.2 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
+                New line.{cod_id} Phases=2 Bus1={pac_1}.1.2 Bus2={pac_2}.1.2 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
                 """
             elif fas_con == 'AC':
                 command_line = f"""
                 ! Lines-ctmt: {ctmt}
-                New line.{index} Phases=2 Bus1={pac_1}.1.3 Bus2={pac_2}.1.3 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
+                New line.{cod_id} Phases=2 Bus1={pac_1}.1.3 Bus2={pac_2}.1.3 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
                 """
             elif fas_con == 'BC':
                 command_line = f"""
                 ! Lines-ctmt: {ctmt}
-                New line.{index} Phases=2 Bus1={pac_1}.2.3 Bus2={pac_2}.2.3 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
+                New line.{cod_id} Phases=2 Bus1={pac_1}.2.3 Bus2={pac_2}.2.3 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
                 """
             elif fas_con == 'A':
                 command_line = f"""
                 ! Lines-ctmt: {ctmt}
-                New line.{index} Phases=1 Bus1={pac_1}.1 Bus2={pac_2}.1 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
+                New line.{cod_id} Phases=1 Bus1={pac_1}.1 Bus2={pac_2}.1 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
                 """
             elif fas_con == 'B':
                 command_line = f"""
                 ! Lines-ctmt: {ctmt}
-                New line.{index} Phases=1 Bus1={pac_1}.2 Bus2={pac_2}.2 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
+                New line.{cod_id} Phases=1 Bus1={pac_1}.2 Bus2={pac_2}.2 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
                 """
             elif fas_con == 'C':
                 command_line = f"""
                 ! Lines-ctmt: {ctmt}
-                New line.{index} Phases=1 Bus1={pac_1}.3 Bus2={pac_2}.3 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
+                New line.{cod_id} Phases=1 Bus1={pac_1}.3 Bus2={pac_2}.3 Linecode={tip_cnd} Length={comp * 3.28084} units=kft
                 """
             else:
                 continue  # Caso não seja nenhuma das opções, ignora e continua

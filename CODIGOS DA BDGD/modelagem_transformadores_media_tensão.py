@@ -119,9 +119,9 @@ class DataBaseQuery:
             # Gerar o comando para cada linha
             command_transformers = f"""
             ! Transformer-ctmt: {ctmt}
-            New Transformer.{cod_id} Phases={} Windings=2 xhl={} 
-            ~ wdg=1 bus={pac_1} conn={} kv={} Kva={} %r={}
-            ~ wdg=2 bus={pac_2} conn={} kv={} Kva={} %r={}
+            New Transformer.{cod_id} Phases={len(lig_fas_p)} Windings=2 xhl={} 
+            ~ wdg=1 bus={pac_1}.1.2.3 conn={} kv={} Kva={} %r={}
+            ~ wdg=2 bus={pac_2}.1.2.3 conn={} kv={} Kva={} %r={}
             """
 
 
