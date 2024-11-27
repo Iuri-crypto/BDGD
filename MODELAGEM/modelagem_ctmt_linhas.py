@@ -2,6 +2,8 @@ import psycopg2
 import py_dss_interface
 import pandas as pd
 import math
+import time
+import concurrent.futures
 import os # Para manipuação de arquivos e pastas
 
 
@@ -76,7 +78,7 @@ class DatabaseQuery:
         def criar_dicionario_bitolas_fases():
             df = pd.read_excel(r"C:\area_seccao_fio_awg_bdgd_2023.xlsx")
 
-            dicionario = pd.Series(df['mm2'].values, index=df['Codigo']).to_dict()
+            dicionario = df.set_index('Codigo')[['mm2', 'RCC(OHMS/KM)']].T.to_dict('dict')
             return dicionario
 
         def obter_mm2_por_codigo(dicionario, codigo):
@@ -94,6 +96,7 @@ class DatabaseQuery:
                 "AB": bit_fas_1,
                 "ABN": bit_fas_1,
                 "AC": bit_fas_1,
+                "CA": bit_fas_1,
                 "ACN": bit_fas_1,
                 "BC": bit_fas_1,
                 "BCN": bit_fas_1,
@@ -104,133 +107,148 @@ class DatabaseQuery:
                 "C": bit_fas_1,
                 "CN": bit_fas_1,
             }
+
+            # A variável codigo é obtida a partir de fas_con
+            codigo = mapa_codigo.get(fas_con)
+
+            if codigo is None:
+                print(f"Erro: 'fas_con' com valor '{fas_con}' não foi encontrado no mapa_codigo.")
+                return 0  # Retorna 0 ou um valor padrão, se fas_con não for mapeado corretamente
+
+            # Tenta converter o código para inteiro, verificando se não é None
+            try:
+                results = obter_mm2_por_codigo(dicionario_mm2_codigo, int(codigo))
+                mm2, RCC = results['mm2'], results['RCC(OHMS/KM)']
+            except ValueError:
+                print(f"Erro: O valor '{codigo}' não pode ser convertido para inteiro.")
+                return 0
+
+            if mm2 is None:
+                print(f"Erro: Não foi encontrada a bitola para o código {codigo} da fase {fas_con}.")
+                return 0  # Retorna 0 ou um valor padrão
+
+
+            return mm2, RCC
+
         except Exception as e:
-            print(f"Erro ao calcular mapa_codigo: {e}")
-
-        codigo = mapa_codigo.get(fas_con)
-
-        print("passei")
-
-
-        mm2 = obter_mm2_por_codigo(dicionario_mm2_codigo, codigo)
-        print(f"area: {mm2}")
-        if mm2 is None:
-            print(f"Erro: Não foi encontrada a bitola para o código {codigo} da fase {fas_con}.")
+            print(f"Erro ao calcular a bitola: {e}")
             return 0  # Retorna 0 ou um valor padrão
-        return mm2
 
         #except ValueError:
         #    print("Erro, insira um valor válido de bitola de fio.")
         #    return []
 
+    def processa_lines(self, linha, base_dir, ctmts_processados):
+        """ Processa uma linha de dados no banco e gera o comando no formato DSS """
+
+        cod_id = linha[0]
+        pac_1 = linha[1]
+        pac_2 = linha[2]
+        ctmt = linha[3]
+        fas_con = linha[4]
+        comp = linha[5]
+        tip_cnd = linha[6]
+        wkb_geometry = linha[7]
+        geom_cab = linha[8]
+        r1 = linha[9]
+        x1 = linha[10]
+        cnom = linha[11]
+        cmax_renamed = linha[12]
+        bit_fas_1 = linha[13]
+        bit_fas_2 = linha[14]
+        bit_fas_3 = linha[15]
+        bit_neu = linha[16]
+
+        # Verificar se o ctmt já foi processado
+        if ctmt not in ctmts_processados:
+            # Se o ctmt não foi processado ainda, criar uma nova pasta para o ctmt
+            ctmt_folder = os.path.join(base_dir, str(ctmt))
+            os.makedirs(ctmt_folder, exist_ok=True)
+
+            # Criar o novo arquivo .dss para este ctmt
+            file_path = os.path.join( ctmt_folder, 'lines.dss')
+            file = open(file_path, 'w')
+
+            # Adicionar o ctmt ao dicionario de ctmts processados (armazena o arquivo aberto)
+            ctmts_processados[ctmt] = file
+
+        else:
+            # Se o ctmt já foi processado, usar o arquivo existente e abrir no modo append ('a')
+            file = ctmts_processados[ctmt]
+
+        # Chamada de função para bitolas dos fios
+        area_seccao, RCC = self.carrega_bitolas_fios_awg_bdgd_2023(fas_con, bit_fas_1, bit_fas_2, bit_fas_3, bit_neu)
+
+        # Valor do raio do fio
+        raio = (math.sqrt(area_seccao/math.pi))/1000 # Raio em Metros
+
+        def contar_fases(fas_con):
+            fases = {'A', 'B', 'C'}
+            fases_presentes = [letra for letra in fas_con if letra in fases]
+            return fases_presentes
+
+        fases_presentes = contar_fases(fas_con)
+
+        # Calculo do Raio Geométrico Médio
+        GMR = 0.7788 * raio
+
+        # Calculando os LineGeometry
+
+        # Gerar o comando para cada condutor de fase e neutro especificados
+        def gerar_configuracao(fas_con, cod_id):
+            condutores = {
+                'A': {'wire':f'{cod_id}_data', 'x': 0, 'h': 10},
+                'B': {'wire': f'{cod_id}_data', 'x': 0.55, 'h': 10},
+                'C': {'wire': f'{cod_id}_data', 'x': 1.1, 'h': 10},
+                'N': {'wire': f'{cod_id}_data', 'x': 1.65, 'h': 10},
+            }
+            fases_indiv = list(fas_con.upper())
+            cond_num = 1
+            configuracao = []
+
+            # Adicionar condutores para cada fase fornecida, incluindo o neutro
+            for fase in fases_indiv:
+                cond = condutores[fase]
+                configuracao.append(f"~ cond = {cond_num} wire = {cond['wire']} x = {cond['x']} h = {cond['h']} units = m")
+            return '\n'.join(configuracao)
+        configuracao = gerar_configuracao(fas_con, cod_id)
+
+        command_line = f"""
+        
+        ! Lines-ctmt: {ctmt}
+        New WireData.{cod_id}_data GMR = {GMR} DIAM = {2*raio} RCC = {RCC} 
+        ~ NormAmps = {cnom} Runits = km radunits = m gmrunits = m
+        
+        New LineGeometry.{cod_id}_Geometry nconds = {len(fas_con)} nphases = {len(fases_presentes)}
+        {configuracao}
+        
+        New Line.{cod_id} Bus1 = {pac_1} Bus_2 = {pac_2} 
+        ~ Geometry = {cod_id}_Geometry
+        ~ Lenght = {comp} units = m
+        """
+
+        # Escrever o comando no arquivo.dss
+        if file:
+            file.write(command_line)
+
     def lines(self):
-        """Cria comandos no formato desejado para o OpenDSS"""
+        """ Cria comandos no formato desejado para o OpenDSS """
         dados = self.consulta_banco()
 
-        # Caminho principal para salvar as subpastas
         base_dir = r'C:\modelagem_linhas'
-
-        # Lista para armazenar os ctmt já processados
         ctmts_processados = {}
 
-        # Iterar sobre os dados e gerar uma subpasta para cada CTMT
-        for index, linha in enumerate(dados):
-            cod_id = linha[0]
-            pac_1 = linha[1]
-            pac_2 = linha[2]
-            ctmt = linha[3]
-            fas_con = linha[4]
-            comp = linha[5]
-            tip_cnd = linha[6]
-            wkb_geometry = linha[7]
-            geom_cab = linha[8]
-            r1 = linha[9]
-            x1 = linha[10]
-            cnom = linha[11]
-            cmax_renamed = linha[12]
-            bit_fas_1 = linha[13]
-            bit_fas_2 = linha[14]
-            bit_fas_3 = linha[15]
-            bit_neu = linha[16]
-            print(f"codigo: {bit_fas_1, bit_fas_2, bit_fas_3, bit_neu}")
-            print(f"fases: {fas_con}")
+        # Usar ThreadPoolExecutor para processar as linhas em paralelo
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = [executor.submit(self.processa_lines, linha, base_dir, ctmts_processados) for linha in dados]
 
-            # Verificar se o ctmt já foi processado
-            if ctmt not in ctmts_processados:
-                # Se o ctmt não foi processado ainda, criar uma nova pasta para o ctmt
-                ctmt_folder = os.path.join(base_dir, str(ctmt))
-                os.makedirs(ctmt_folder, exist_ok=True)
-
-                # Criar o novo arquivo .dss para este ctmt
-                file_path = os.path.join( ctmt_folder, 'lines.dss')
-                file = open(file_path, 'w')
-
-                # Adicionar o ctmt ao dicionario de ctmts processados (armazena o arquivo aberto)
-                ctmts_processados[ctmt] = file
-
-            else:
-                # Se o ctmt já foi processado, usar o arquivo existente e abrir no modo append ('a')
-                file = ctmts_processados[ctmt]
-
-            # Chamada de função para bitolas dos fios
-            area_seccao = self.carrega_bitolas_fios_awg_bdgd_2023(fas_con, bit_fas_1, bit_fas_2, bit_fas_3, bit_neu)
-            print(f"area seccao: {area_seccao}")
-
-            # Valor do raio do fio
-            raio = (math.sqrt(area_seccao/math.pi))/1000 # Raio em Metros
-
-            def contar_fases(fas_con):
-                fases = {'A', 'B', 'C'}
-                fases_presentes = [letra for letra in fas_con if letra in fases]
-                return fases_presentes
-
-            fases_presentes = contar_fases(fas_con)
-
-            # Calculo do Raio Geométrico Médio
-            GMR = 0.7788 * raio
-
-            # Calculando os LineGeometry
-
-            # Gerar o comando para cada condutor de fase e neutro especificados
-            def gerar_configuracao(fas_con, cod_id):
-                condutores = {
-                    'A': {'wire':f'{cod_id}_data', 'x': 0, 'h': 10},
-                    'B': {'wire': f'{cod_id}_data', 'x': 0.55, 'h': 10},
-                    'C': {'wire': f'{cod_id}_data', 'x': 1.1, 'h': 10},
-                    'N': {'wire': f'{cod_id}_data', 'x': 1.65, 'h': 10},
-                }
-                fases_indiv = list(fas_con.upper())
-                cond_num = 1
-                configuracao = []
-
-                # Adicionar condutores para cada fase fornecida, incluindo o neutro
-                for fase in fases_indiv:
-                    cond = condutores[fase]
-                    configuracao.append(f"~ cond = {cond_num} wire = {cond['wire']} x = {cond['x']} h = {cond['h']} units = m")
-                return '\n'.join(configuracao)
-            configuracao = gerar_configuracao(fas_con, cod_id)
-
-            command_line = f"""
-            
-            ! Lines-ctmt: {ctmt}
-            New WireData.{cod_id}_data GMR = {GMR} DIAM = {2*raio} RAC = {r1} 
-            ~ NormAmps = {cnom} Runits = km radunits = m gmrunits = m
-            
-            New LineGeometry.{cod_id}_Geometry nconds = {len(fas_con)} nphases = {len(fases_presentes)}
-            {configuracao}
-            
-            New Line.{cod_id} Bus1 = {pac_1} Bus_2 = {pac_2} 
-            ~ Geometry = {cod_id}_Geometry
-            ~ Lenght = {comp} units = m
-            """
-
-            # Escrever o comando no arquivo.dss
-            if file:
-                file.write(command_line)
+            # Espera todos os processos terminarem
+            concurrent.futures.wait(futures)
 
         # Fechar todos os arquivos antes de terminar o loop
         for file in ctmts_processados.values():
             file.close()
+
 
     def close(self):
         """Fecha a conexão com o banco de dados"""
@@ -249,6 +267,8 @@ if __name__ == "__main__":
     user = 'iuri'
     password = 'aa11bb22'
 
+    start_time = time.time()
+
     # Criar uma instância da classe DatabaseQuery
     db_query = DatabaseQuery(host, port, dbname, user, password)
 
@@ -260,3 +280,7 @@ if __name__ == "__main__":
 
     # Fechar a conexão com o banco de dados
     db_query.close()
+
+    end_time = time.time()
+    excution_time = end_time - start_time
+    print(f"O tempo de execução foi de {excution_time} segundos.")

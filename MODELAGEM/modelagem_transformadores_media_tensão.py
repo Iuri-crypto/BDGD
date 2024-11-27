@@ -1,8 +1,10 @@
 import psycopg2
 import py_dss_interface
 import os
+import math
+import time
 
-from numpy.testing.print_coercion_tables import print_new_cast_table
+#from numpy.testing.print_coercion_tables import print_new_cast_table
 
 dss = py_dss_interface.DSSDLL()
 
@@ -60,7 +62,12 @@ class DataBaseQuery:
                     eqtrmt.lig_fas_p,
                     eqtrmt.lig_fas_s,
                     eqtrmt.r,
-                    eqtrmt.xhl     
+                    eqtrmt.xhl,
+                    eqtrmt.ten_pri_voltage,
+                    eqtrmt.ten_sec_voltage,
+                    eqtrmt.potencia_nominal_kva,
+                    eqtrmt.per_fer,
+                    eqtrmt.per_tot
                 FROM 
                     untrmt
                 LEFT JOIN 
@@ -79,25 +86,31 @@ class DataBaseQuery:
         dados = self.consulta_banco()
 
         # Caminho principal para salvar as subpastas
-        base_dir = r'C:\modelagem_transformadores'
+        base_dir = r'C:\Transformers_BDGD_2023_Energisa'
 
         # Dicionário para armazenar os ctmt já processados
         ctmts_processados = {}
 
         # Iterar sobre os dados e gerar uma subpasta para cada ctmt
         for index, linha in enumerate(dados):
-            cod_id = linha[0]
-            pac_1 = linha[1]
-            pac_2 = linha[2]
-            ctmt = linha[3]
-            pot_nom = linha[4]
-            lig = linha[5]
-            ten_pri = linha[6]
-            ten_sec = linha[7]
-            lig_fas_p = linha[8]
-            lig_fas_s = linha[9]
-            r = linha[10]
-            xhl = linha[11]
+            wkb = linha[0]
+            cod_id = linha[1]
+            pac_1 = linha[2]
+            pac_2 = linha[3]
+            ctmt = linha[4]
+            pot_nom = linha[5]
+            lig = linha[6]
+            ten_pri = linha[7]
+            ten_sec = linha[8]
+            lig_fas_p = linha[9]
+            lig_fas_s = linha[10]
+            r = linha[11]
+            xhl = linha[12]
+            ten_pri_voltage = linha[13]
+            ten_sec_voltage = linha[14]
+            potencia_nominal = linha[15]
+            perdas_ferro = linha[16]
+            perdas_total = linha[17]
 
             # Verificar se o ctmt já foi processado
             if ctmt not in ctmts_processados:
@@ -116,13 +129,60 @@ class DataBaseQuery:
                 # Se o ctmt já foi processado, usar o arquivo existente e abrir no modo append ('a')
                 file = ctmts_processados[ctmt]
 
+            mapa_fases_p =  {
+                'ABC': '.1.2.3', 'ACB': '.1.3.2', 'BAC': '.2.1.3', 'BCA': '.2.3.1', 'CAB': '.3.1.2', 'CBA': '.3.2.1',
+                'ABCN': '.1.2.3', 'ACBN': '.1.3.2', 'BACN': '.2.1.3', 'BCAN': '.2.3.1', 'CABN': '.3.1.2', 'CBAN': '.3.2.1',
+                'ABN': '.1.2', 'ACN': '.1.3', 'BAN': '.1.2', 'CAN': '.1.3', 'A': '.1', 'B': '.2', 'C': '.3', 'AN': '.1',
+                'BA': '.1.2', 'BN': '.2', 'CN': '.3', 'AB': '.1.2', 'AC': '.1.3', 'BC': '.2.3',
+                'CNA': '.1', 'ANB': '.1.2', 'BNC': '.2.3', 'ABC1': '.1.2.3', 'ABCB': '.1.3', 'CA': '.1.3',
+                'CAA': '.1'
+            }
+            rec_fases_p = mapa_fases_p[lig_fas_p]
+
+            mapa_fases_s =   {
+                'ABC': '.1.2.3', 'ACB': '.1.3.2', 'BAC': '.2.1.3', 'BCA': '.2.3.1', 'CAB': '.3.1.2', 'CBA': '.3.2.1',
+                'ABCN': '.1.2.3', 'ACBN': '.1.3.2', 'BACN': '.2.1.3', 'BCAN': '.2.3.1', 'CABN': '.3.1.2', 'CBAN': '.3.2.1',
+                'ABN': '.1.2', 'ACN': '.1.3', 'BAN': '.1.2', 'CAN': '.1.3', 'A': '.1', 'B': '.2', 'C': '.3', 'AN': '.1',
+                'BA': '.1.2', 'BN': '.2', 'CN': '.3', 'AB': '.1.2', 'AC': '.1.3', 'BC': '.2.3',
+                'CNA': '.1', 'ANB': '.1.2', 'BNC': '.2.3', 'ABC1': '.1.2.3', 'ABCB': '.1.3', 'CA': '.1.3',
+                'CAA': '.1'
+            }
+            rec_fases_s = mapa_fases_s[lig_fas_s]
+
+            classifica_coneccao_primario = 'delta' if len(lig_fas_p) >= 2 else 'estrela'
+            classifica_coneccao_secundario = 'delta' if len(lig_fas_s) >= 2 else 'estrela'
+
+            classifica_tensao_primario = '{:.2f}'.format(ten_pri_voltage) if len(lig_fas_p) >= 2 else '{:.2f}'.format(
+                int(ten_pri_voltage) / math.sqrt(3))
+            classifica_tensao_secundario = '{:.2f}'.format(ten_sec_voltage) if len(lig_fas_s) >= 2 else '{:.2f}'.format(
+                int(ten_sec_voltage) / math.sqrt(3))
+
             # Gerar o comando para cada linha
+            """ %r são as perdas no cobre 
+                %noloadloss são as perdas no ferro (histerese e correntes de facault)
+                %loadloss são as perdas totais do trafo (perdas no ferro + perdas no cobre) não usado porque ja definido o %r
+            """
             command_transformers = f"""
             ! Transformer-ctmt: {ctmt}
-            New Transformer.{cod_id} Phases={len(lig_fas_p)} Windings=2 xhl={} 
-            ~ wdg=1 bus={pac_1}.1.2.3 conn={} kv={} Kva={} %r={}
-            ~ wdg=2 bus={pac_2}.1.2.3 conn={} kv={} Kva={} %r={}
+            New Transformer.{cod_id} Phases={len(lig_fas_p)} Windings=2 xhl={xhl} %noloadloss = {(perdas_ferro / perdas_total) * 100} 
+            ~ wdg=1 bus={pac_1}{rec_fases_p} conn={classifica_coneccao_primario} kv={classifica_tensao_primario} Kva={potencia_nominal} %r={r} 
+            ~ wdg=2 bus={pac_2}{rec_fases_s} conn={classifica_coneccao_secundario} kv={classifica_tensao_secundario} Kva={potencia_nominal} %r={r}
             """
+
+            if file:
+                file.write(command_transformers)
+
+            # Fechar todos os arquivos antes de terminar o loop
+        for file in ctmts_processados.values():
+            file.close()
+
+    def close(self):
+        """Fecha a conexão com o banco de dados"""
+        if self.cur:
+            self.cur.close()
+        if self.conn:
+            self.conn.close()
+        print("Conexão com o banco de dados fechada.")
 
 
 # Uso da classe
@@ -134,6 +194,20 @@ if __name__ == "__main__":
     user = 'iuri'
     password = 'aa11bb22'
 
-    # Cria uma instância da classe DataBaseQuery
+    start_time = time.time()
+
+    # Criar uma instância da classe DatabaseQuery
     db_query = DataBaseQuery(host, port, dbname, user, password)
 
+    # Conectar ao banco de dados
+    db_query.connect()
+
+    # Gerar comandos para o OpenDSS
+    db_query.transformers()
+
+    # Fechar a conexão com o banco de dados
+    db_query.close()
+
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"O tempo de execução foi de {execution_time} segundos.")
