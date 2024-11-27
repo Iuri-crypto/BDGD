@@ -41,7 +41,8 @@ class DatabaseQuery:
                         uncrmt.tip_uni,
                         uncrmt.pot_nom,
                         uncrmt.pac_1,
-                        uncrmt.ctmt
+                        uncrmt.ctmt,
+                        uncrmt.tip_unid
                 FROM 
                     ssdmt;       
             """
@@ -71,6 +72,7 @@ class DatabaseQuery:
             pot_nom = linha[3]
             pac_1 = linha[4]
             ctmt = linha[5]
+            tip_unid = linha[6]
 
             # Verificar se o ctmt já foi processado
             if ctmt not in ctmts_processados:
@@ -100,10 +102,17 @@ class DatabaseQuery:
             }
             rec_fases = mapa_fases[fas_con]
 
-            command_linecode = f"""
-           ! Linecode-ctmt: {ctmt}
-            New Reactor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {} kVAR = {pot_nom} conn = wye
-            """
+            if tip_unid == 56 or 12:
+
+                command_linecode = f"""
+                               ! Linecode-ctmt: {ctmt}
+                                New Reactor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {} kVAR = {pot_nom} conn = wye
+                                """
+            else:
+                command_linecode = f"""
+                              ! Linecode-ctmt: {ctmt}
+                               New Capacitor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {} kVAR = {pot_nom} conn = wye
+                               """
 
             # Escrever o comando no arquivo.dss
             if file:
