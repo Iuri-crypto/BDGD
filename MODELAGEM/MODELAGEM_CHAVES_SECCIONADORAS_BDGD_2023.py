@@ -1,6 +1,6 @@
 import psycopg2
 import py_dss_interface
-import os # Para manipuação de arquivos e pastas
+import os  # Para manipulação de arquivos e pastas
 
 dss = py_dss_interface.DSSDLL()
 
@@ -16,7 +16,7 @@ class DatabaseQuery:
         self.cur = None
 
     def connect(self):
-        """ Estabelece a conexão com o banco de dados PostgreSQL """
+        """Estabelece a conexão com o banco de dados PostgreSQL"""
         try:
             self.conn = psycopg2.connect(
                 dbname=self.dbname,
@@ -36,13 +36,10 @@ class DatabaseQuery:
             # Consulta a tabela SSDMT para extrair as colunas especificadas
             query = """
                 SELECT 
-                        uncrmt.cod_id,
-                        uncrmt.fas_con,
-                        uncrmt.tip_uni,
-                        uncrmt.pot_nom,
-                        uncrmt.pac_1,
-                        uncrmt.ctmt,
-                        uncrmt.tip_unid
+                        unsemt.pac_1,
+                        unsemt.pac_2,
+                        unsemt.cod_id,
+                        unsemt.ctmt
                 FROM 
                     ssdmt;       
             """
@@ -59,20 +56,17 @@ class DatabaseQuery:
         dados = self.consulta_banco()
 
         # Caminho principal para salvar as subpastas
-        base_dir = r'C:\Compensadores_de_Reativo_BDGD_2023_Energisa'
+        base_dir = r'C:\CHAVES_SECCIONADORAS_BDGD_2023_Energisa'
 
         # Dicionário para armazenar os ctmt já processados
         ctmts_processados = {}
 
         # Iterar sobre os dados e gerar uma subpasta para cada CTMT
         for index, linha in enumerate(dados):
-            cod_id = linha[0]
-            fas_con = linha[1]
-            tip_uni = linha[2]
-            pot_nom = linha[3]
-            pac_1 = linha[4]
-            ctmt = linha[5]
-            tip_unid = linha[6]
+            pac_1 = linha[0]
+            pac_2 = linha[1]
+            cod_id = linha[2]
+            ctmt = linha[3]
 
             # Verificar se o ctmt já foi processado
             if ctmt not in ctmts_processados:
@@ -81,42 +75,24 @@ class DatabaseQuery:
                 os.makedirs(ctmt_folder, exist_ok=True)
 
                 # Criar o novo arquivo .dss para este ctmt
-                file_path = os.path.join( ctmt_folder, 'Compensadores_de_reativo.dss')
+                file_path = os.path.join(ctmt_folder, 'CHAVES_SECCIONADORAS.dss')
                 file = open(file_path, 'w')
 
-                # Adicionar o ctmt ao dicionario de ctmts processados (armazena o arquivo aberto)
+                # Adicionar o ctmt ao dicionário de ctmts processados (armazena o arquivo aberto)
                 ctmts_processados[ctmt] = file
-
             else:
                 # Se o ctmt já foi processado, usar o arquivo existente e abrir no modo append ('a')
                 file = ctmts_processados[ctmt]
 
-            # Gerar o comando para cada linha
-            mapa_fases = {
-                'ABC': '.1.2.3', 'ACB': '.1.3.2', 'BAC': '.1.2.3', 'BCA': '.1.2.3', 'CAB': '.1.2.3', 'CBA': '.1.2.3',
-                'ABCN': '.1.2.3', 'ACBN': '.1.2.3', 'BACN': '.1.2.3', 'BCAN': '.1.2.3', 'CABN': '.1.2.3',
-                'CBAN': '.1.2.3',
-                'ABN': '.1.2', 'ACN': '.1.3', 'BAN': '.1.2', 'CAN': '.1.3', 'A': '.1', 'B': '.2', 'C': '.3', 'AN': '.1',
-                'BA': '.1.2', 'BN': '.2', 'CN': '.3', 'AB': '.1.2', 'AC': '.1.3', 'BC': '.2.3',
-                'CNA': '.1', 'ANB': '.1.2', 'BNC': '.2.3',  'CA': '.1.3',
-            }
-            rec_fases = mapa_fases[fas_con]
-
-            if tip_unid == 56:
-
-                command_linecode = f"""
-                               ! Linecode-ctmt: {ctmt}
-                                New Reactor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {} kVAR = {pot_nom} conn = wye
-                                """
-            else:
-                command_linecode = f"""
-                              ! Linecode-ctmt: {ctmt}
-                               New Capacitor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {} kVAR = {pot_nom} conn = wye
-                               """
+            # Gerar o comando para o OpenDSS
+            command_switch = f"""
+                ! Linecode-ctmt: {ctmt}
+                New Switch.{cod_id} Bus1={pac_1} Bus2={pac_2} Mode=Close
+                """
 
             # Escrever o comando no arquivo.dss
             if file:
-                file.write(command_linecode)
+                file.write(command_switch)
 
         # Fechar todos os arquivos antes de terminar o loop
         for file in ctmts_processados.values():
@@ -129,6 +105,7 @@ class DatabaseQuery:
         if self.conn:
             self.conn.close()
         print("Conexão com o banco de dados fechada.")
+
 
 # Uso da classe
 if __name__ == "__main__":
