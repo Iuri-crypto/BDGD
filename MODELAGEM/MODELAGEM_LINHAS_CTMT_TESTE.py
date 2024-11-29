@@ -68,6 +68,22 @@ class DatabaseQuery:
             print(f"Erro ao consultar o banco de dados: {e}")
             return []
 
+    def consulta_banco_ctmt(self):
+        """Consulta o banco de dados e coleta os dados"""
+        query = """
+                  SELECT 
+                      ctmt.pac_ini
+                  FROM ctmt
+              """
+        try:
+            self.cur.execute(query)
+            results = self.cur.fetchall()
+            return results
+        except Exception as e:
+            print(f"Erro ao consultar o banco de dados: {e}")
+            return []
+
+
     def criar_dicionario_bitolas_fases(self):
         """Carrega os dados do xlsx e cria o dicionário para busca das bitolas"""
         df = pd.read_excel(r"C:\area_seccao_fio_awg_bdgd_2023.xlsx")
@@ -120,6 +136,7 @@ class DatabaseQuery:
     def processa_linhas_e_gera_comando(self):
         """Consulta os dados no banco e processa cada linha para gerar os comandos DSS diretamente"""
         dados = self.consulta_banco()
+        dados_ctmt = self.consulta_banco_ctmt()
 
         # Caminho principal para salvar as subpastas
         base_dir = r'C:\modelagem_linhas'
@@ -161,6 +178,13 @@ class DatabaseQuery:
                     )
 
                 configuracao = gerar_configuracao(fas_con, cod_id)
+
+                # Obtendo Barra Slack
+                if  str(pac_1) in dados_ctmt:
+                    pac_1 = 'SourceBus'
+
+                elif str(pac_2) in dados_ctmt:
+                    pac_2 = 'SourceBus'
 
                 # Gerar o comando no formato desejado
                 command_line = f"""
