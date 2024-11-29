@@ -49,17 +49,13 @@ class DatabaseQuery:
                     uncrmt
                 JOIN 
                     ctmt ON uncrmt.ctmt = ctmt.cod_id; -- Realiza o join com base na coluna ctmt
-
             """
             self.cur.execute(query_ssmt)
             results_ssmt = self.cur.fetchall()
-
             return results_ssmt
         except Exception as e:
             print(f"Erro ao executar a consulta SSDMT: {e}")
             return []
-
-
 
     def lines(self):
         """Cria comandos no formato desejado para o OpenDSS, incluindo os valores de tensão"""
@@ -94,7 +90,6 @@ class DatabaseQuery:
 
                 # Adicionar o ctmt ao dicionário de ctmts processados (armazena o arquivo aberto)
                 ctmts_processados[ctmt] = file
-
             else:
                 # Se o ctmt já foi processado, usar o arquivo existente e abrir no modo append ('a')
                 file = ctmts_processados[ctmt]
@@ -109,22 +104,23 @@ class DatabaseQuery:
                 'CNA': '.1', 'ANB': '.1.2', 'BNC': '.2.3', 'CA': '.1.3',
             }
 
+            # Definir o valor de tensão baseado em 'ten_nom'
             if ten_nom == 49:
                 ten = 13.8
-
             else:
                 ten = 34.5
 
-            rec_fases = mapa_fases[fas_con]
+            rec_fases = mapa_fases.get(fas_con, '')
 
+            # Gerar o comando dependendo do tipo de unidade
             if tip_unid == 56:
                 command_linecode = f"""
                                ! Linecode-ctmt: {ctmt}
-                                New Reactor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {ten} kVAR = {pot_nom} conn = wye
+                               New Reactor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {ten} kVAR = {pot_nom} conn = wye
                                 """
             else:
                 command_linecode = f"""
-                              ! Linecode-ctmt: {ctmt}
+                               ! Linecode-ctmt: {ctmt}
                                New Capacitor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {ten} kVAR = {pot_nom} conn = wye
                                """
 
