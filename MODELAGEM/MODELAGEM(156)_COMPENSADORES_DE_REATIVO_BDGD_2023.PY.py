@@ -36,16 +36,20 @@ class DatabaseQuery:
         try:
             # Consulta à tabela SSDMT para extrair as colunas especificadas
             query_ssmt = """
-                SELECT 
+               SELECT 
                     uncrmt.cod_id,
                     uncrmt.fas_con,
-                    uncrmt.tip_uni,
+                    uncrmt.tip_unid,
                     uncrmt.pot_nom,
                     uncrmt.pac_1,
                     uncrmt.ctmt,
-                    uncrmt.tip_unid
+                    uncrmt.tip_unid,
+                    ctmt.ten_nom -- Adiciona a coluna ten_nom da tabela ctmt
                 FROM 
-                    ssdmt;
+                    uncrmt
+                JOIN 
+                    ctmt ON uncrmt.ctmt = ctmt.cod_id; -- Realiza o join com base na coluna ctmt
+
             """
             self.cur.execute(query_ssmt)
             results_ssmt = self.cur.fetchall()
@@ -76,6 +80,7 @@ class DatabaseQuery:
             pac_1 = linha[4]
             ctmt = linha[5]
             tip_unid = linha[6]
+            ten_nom = linha[7]
 
             # Verificar se o ctmt já foi processado
             if ctmt not in ctmts_processados:
@@ -108,12 +113,12 @@ class DatabaseQuery:
             if tip_unid == 56:
                 command_linecode = f"""
                                ! Linecode-ctmt: {ctmt}
-                                New Reactor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {13.8} kVAR = {pot_nom} conn = wye
+                                New Reactor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {ten_nom} kVAR = {pot_nom} conn = wye
                                 """
             else:
                 command_linecode = f"""
                               ! Linecode-ctmt: {ctmt}
-                               New Capacitor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {13.8} kVAR = {pot_nom} conn = wye
+                               New Capacitor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {ten_nom} kVAR = {pot_nom} conn = wye
                                """
 
             # Escrever o comando no arquivo .dss
@@ -139,8 +144,8 @@ if __name__ == "__main__":
     host = 'localhost'
     port = '5432'
     dbname = 'BDGD_2023_ENERGISA'
-    user = 'i3e'
-    password = 'i3e'
+    user = 'iuri'
+    password = 'aa11bb22'
 
     db_query = DatabaseQuery(host, port, dbname, user, password)
     db_query.connect()

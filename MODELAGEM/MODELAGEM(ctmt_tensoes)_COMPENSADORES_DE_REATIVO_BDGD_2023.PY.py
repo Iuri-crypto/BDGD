@@ -36,16 +36,20 @@ class DatabaseQuery:
         try:
             # Consulta à tabela SSDMT para extrair as colunas especificadas
             query_ssmt = """
-                SELECT 
+               SELECT 
                     uncrmt.cod_id,
                     uncrmt.fas_con,
                     uncrmt.tip_unid,
                     uncrmt.pot_nom,
                     uncrmt.pac_1,
                     uncrmt.ctmt,
-                    uncrmt.tip_unid
+                    uncrmt.tip_unid,
+                    ctmt.ten_nom -- Adiciona a coluna ten_nom da tabela ctmt
                 FROM 
-                    uncrmt;
+                    uncrmt
+                JOIN 
+                    ctmt ON uncrmt.ctmt = ctmt.cod_id; -- Realiza o join com base na coluna ctmt
+
             """
             self.cur.execute(query_ssmt)
             results_ssmt = self.cur.fetchall()
@@ -55,70 +59,17 @@ class DatabaseQuery:
             print(f"Erro ao executar a consulta SSDMT: {e}")
             return []
 
-    def consulta_tensao(self):
-        """Consulta o banco de dados para obter os valores de `clas_ten` e `valor_tensao`"""
-        try:
-            # Consulta à tabela para obter os valores de tensões e descrições
-            query_tensao = """
-                SELECT DISTINCT u.pac_1, 
-                                s.cod_id as busca, 
-                                e.clas_ten,
-                                CASE CAST(e.clas_ten AS INTEGER)
-                                    WHEN 0 THEN NULL
-                                    WHEN 1 THEN 3800
-                                    WHEN 2 THEN 13800
-                                    WHEN 3 THEN 14400
-                                    WHEN 4 THEN 15000
-                                    WHEN 5 THEN 20000
-                                    WHEN 6 THEN 23000
-                                    WHEN 7 THEN 24000
-                                    WHEN 8 THEN 25000
-                                    WHEN 9 THEN 34500
-                                    WHEN 19 THEN 36200
-                                    WHEN 10 THEN 45400
-                                    WHEN 11 THEN 69000
-                                    WHEN 12 THEN 72500
-                                    WHEN 13 THEN 92400
-                                    WHEN 14 THEN 138000
-                                    WHEN 15 THEN 145000
-                                    WHEN 16 THEN 230000
-                                    WHEN 17 THEN 242000
-                                    WHEN 18 THEN 362000
-                                    ELSE NULL
-                                END AS valor_tensao
-                FROM uncrmt u
-                INNER JOIN unsemt s ON u.pac_1 = s.pac_2
-                INNER JOIN eqse e ON s.cod_id = e.un_se
-                WHERE s.cod_id IN (
-                    SELECT e.un_se
-                    FROM eqse e
-                    WHERE e.un_se IS NOT NULL
-                );
-            """
-            self.cur.execute(query_tensao)
-            results_tensao = self.cur.fetchall()
-            return results_tensao
-        except Exception as e:
-            print(f"Erro ao executar a consulta sobre tensões: {e}")
-            return []
+
 
     def lines(self):
         """Cria comandos no formato desejado para o OpenDSS, incluindo os valores de tensão"""
         dados_ssmt = self.consulta_banco()  # Dados da consulta SSDMT
-        dados_tensao = self.consulta_tensao()  # Dados de tensão
 
         # Caminho principal para salvar as subpastas
-        base_dir = r'C:\Compensadores(652)_de_Reativo_BDGD_2023_Energisa'
+        base_dir = r'C:\Compensadores_de_Reativo_BDGD_2023_Energisa'
 
         # Dicionário para armazenar os ctmt já processados
         ctmts_processados = {}
-
-        # Criar um dicionário para mapear `pac_1` para `valor_tensao`
-        mapa_tensao = {}
-        for row in dados_tensao:
-            pac_1 = row[0]
-            valor_tensao = row[3]
-            mapa_tensao[pac_1] = valor_tensao
 
         # Iterar sobre os dados de SSDMT e gerar uma subpasta para cada CTMT
         for index, linha in enumerate(dados_ssmt):
@@ -129,9 +80,7 @@ class DatabaseQuery:
             pac_1 = linha[4]
             ctmt = linha[5]
             tip_unid = linha[6]
-
-            # Obter o valor de tensão para o pac_1 correspondente
-            valor_tensao = mapa_tensao.get(pac_1, None)
+            ten_nom = linha[7]
 
             # Verificar se o ctmt já foi processado
             if ctmt not in ctmts_processados:
@@ -159,17 +108,24 @@ class DatabaseQuery:
                 'BA': '.1.2', 'BN': '.2', 'CN': '.3', 'AB': '.1.2', 'AC': '.1.3', 'BC': '.2.3',
                 'CNA': '.1', 'ANB': '.1.2', 'BNC': '.2.3', 'CA': '.1.3',
             }
+
+            if ten_nom == 49:
+                ten = 13.8
+
+            else:
+                ten = 34.5
+
             rec_fases = mapa_fases[fas_con]
 
             if tip_unid == 56:
                 command_linecode = f"""
                                ! Linecode-ctmt: {ctmt}
-                                New Reactor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {valor_tensao / 1000} kVAR = {pot_nom} conn = wye
+                                New Reactor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {ten} kVAR = {pot_nom} conn = wye
                                 """
             else:
                 command_linecode = f"""
                               ! Linecode-ctmt: {ctmt}
-                               New Capacitor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {valor_tensao / 1000} kVAR = {pot_nom} conn = wye
+                               New Capacitor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {ten} kVAR = {pot_nom} conn = wye
                                """
 
             # Escrever o comando no arquivo .dss
