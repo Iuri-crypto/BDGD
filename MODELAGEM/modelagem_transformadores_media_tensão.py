@@ -213,3 +213,6 @@ if __name__ == "__main__":
     end_time = time.time()
     execution_time = end_time - start_time
     print(f"O tempo de execução foi de {execution_time} segundos.")
+
+
+    # tem 200 valores de trafos nao conectados a ssdmt porqeu nao tem chave 
