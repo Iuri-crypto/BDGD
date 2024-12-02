@@ -122,6 +122,7 @@ class DataBaseQuery:
 
                 # Adicionar o ctmt ao dicionario de ctmts processados (armazena o arquivo aberto)
                 ctmts_processados[ctmt] = file
+                
 
             else:
                 # Se o ctmt já foi processado, usar o arquivo existente e abrir no modo append ('a')
