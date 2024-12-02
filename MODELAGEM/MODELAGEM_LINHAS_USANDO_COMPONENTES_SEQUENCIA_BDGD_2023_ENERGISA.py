@@ -1,12 +1,6 @@
 import psycopg2
-#import py_dss_interface
-import pandas as pd
-import math
 import time
-import os  # Para manipulação de arquivos e pastas
-
-# Inicializa o objeto do OpenDSS
-#dss = py_dss_interface.DSSDLL()
+import os
 
 
 class DatabaseQuery:
@@ -64,7 +58,7 @@ class DatabaseQuery:
         dados = self.consulta_banco()
 
         # Caminho principal para salvar as subpastas
-        base_dir = r'C:\modelagem_linhas_usando_componentes_sequencia_BDGD_2023_ENERGISA'
+        base_dir = r'C:\MODELAGEM_LINHAS_MÉDIA_TENSÃO_BDGD_2023_ENERGISA'
 
         # Dicionario para armazenar os ctmts já processados
         ctmts_processados = {}
@@ -90,8 +84,8 @@ class DatabaseQuery:
             else:
                 file = ctmts_processados[ctmt]
 
-            fases = {'A', 'B', 'C', 'N'}
-            fases_presentes = [letra for letra in fas_con if letra in fases]
+            # fases = {'A', 'B', 'C', 'N'}
+            # fases_presentes = [letra for letra in fas_con if letra in fases]
 
             mapa_fases = {
                 'ABC': '.1.2.3', 'ABCN': '.1.2.3', 'ABN': '.1.2', 'ACN': '.1.3',
@@ -101,7 +95,7 @@ class DatabaseQuery:
 
             # Gerar o comando no formato desejado
             command_line = f"""
-            !Plot_{wkb_geometry}  # Caso queira plotar a camada de linhas no qgis 
+            !Plot_{wkb_geometry}  
             ! Lines-ctmt: {ctmt}
             New Line.{cod_id} Phases = {len(fas_con)} Bus_1 = {pac_1}{rec_fases} Bus_2 = {pac_2}{rec_fases} Linecode = {tip_cnd} Length = {comp} units = m
             """

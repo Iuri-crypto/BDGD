@@ -1,8 +1,8 @@
 import psycopg2
 import py_dss_interface
-import os # Para manipuação de arquivos e pastas
+import os
 
-dss = py_dss_interface.DSSDLL()
+
 
 class DatabaseQuery:
     def __init__(self, dbhost, dbport, dbdbname, dbuser, dbpassword):

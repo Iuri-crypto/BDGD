@@ -1,8 +1,5 @@
 import psycopg2
-import py_dss_interface
-import os  # Para manipulação de arquivos e pastas
-
-dss = py_dss_interface.DSSDLL()
+import os
 
 
 class DatabaseQuery:
@@ -62,7 +59,7 @@ class DatabaseQuery:
         dados_ssmt = self.consulta_banco()  # Dados da consulta SSDMT
 
         # Caminho principal para salvar as subpastas
-        base_dir = r'C:\Compensadores_de_Reativo_BDGD_2023_Energisa'
+        base_dir = r'C:\MODELAGEM_COMPENSADORES_DE_REATIVO_MÉDIA_TENSÃO_BDGD_2023_ENERGISA'
 
         # Dicionário para armazenar os ctmt já processados
         ctmts_processados = {}

@@ -1,10 +1,7 @@
 import psycopg2
-import py_dss_interface
 import os
-import math
 import time
 
-dss = py_dss_interface.DSSDLL()
 
 class DataBaseQuery:
     def __init__(self, dbhost, dbport, dbdbname, dbuser, dbpassword):
@@ -77,7 +74,7 @@ class DataBaseQuery:
         dados = self.consulta_banco()
 
         # Caminho principal para salvar as subpastas
-        base_dir = r'C:\Unidades_Reguladoras_Tensão_BDGD_2023_Energisa'
+        base_dir = r'C:\REGULADORES_MÉDIA_TENSÃO_BDGD_2023_ENERGISA'
 
         # Dicionário para armazenar os ctmt já processados
         ctmts_processados = {}
@@ -108,7 +105,7 @@ class DataBaseQuery:
                 os.makedirs(ctmt_folder, exist_ok=True)
 
                 # Criar o novo arquivo .dss para este ctmt
-                file_path = os.path.join(ctmt_folder, 'RegControl.dss')
+                file_path = os.path.join(ctmt_folder, 'REG_CONTROL.dss')
                 file = open(file_path, 'w')
 
                 # Adicionar o ctmt ao dicionário de ctmts processados (armazena o arquivo aberto)

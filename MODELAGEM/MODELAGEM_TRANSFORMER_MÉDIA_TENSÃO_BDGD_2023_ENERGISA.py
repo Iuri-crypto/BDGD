@@ -1,12 +1,8 @@
 import psycopg2
-import py_dss_interface
 import os
 import math
 import time
 
-#from numpy.testing.print_coercion_tables import print_new_cast_table
-
-dss = py_dss_interface.DSSDLL()
 
 class DataBaseQuery:
     def __init__(self, dbhost, dbport, dbdbname, dbuser, dbpassword):
@@ -87,7 +83,7 @@ class DataBaseQuery:
         dados = self.consulta_banco()
 
         # Caminho principal para salvar as subpastas
-        base_dir = r'C:\Transformers_BDGD_2023_Energisa'
+        base_dir = r'C:\MODELAGEM_TRANSFORMADORES_MÉDIA_TENSÃO_BDGD_2023_ENERGISA'
 
         # Dicionário para armazenar os ctmt já processados
         ctmts_processados = {}
@@ -121,7 +117,7 @@ class DataBaseQuery:
                 os.makedirs(ctmt_folder, exist_ok=True)
 
                 # Criar o novo arquivo .dss para este ctmt
-                file_path = os.path.join(ctmt_folder, 'transformers.dss')
+                file_path = os.path.join(ctmt_folder, 'TRANSFORMERS.dss')
                 file = open(file_path, 'w')
 
                 # Adicionar o ctmt ao dicionario de ctmts processados (armazena o arquivo aberto)

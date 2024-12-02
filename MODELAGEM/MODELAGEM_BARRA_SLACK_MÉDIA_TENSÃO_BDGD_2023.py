@@ -1,8 +1,6 @@
 import psycopg2
-import py_dss_interface
-import os  # Para manipulação de arquivos e pastas
+import os
 
-dss = py_dss_interface.DSSDLL()
 
 class DatabaseQuery:
     def __init__(self, dbhost, dbport, dbdbname, dbuser, dbpassword):
@@ -60,7 +58,7 @@ class DatabaseQuery:
             return
 
         # Caminho principal para salvar as subpastas
-        base_dir = r'C:\Barra_Slack_BDGD_2023_Energisa'
+        base_dir = r'C:\MODELAGEM_BARRA_SLACK_MÉDIA_TENSÃO_BDGD_2023_ENERGISA'
 
         # Dicionário para armazenar os ctmt já processados
         ctmts_processados = {}
@@ -78,7 +76,7 @@ class DatabaseQuery:
                 os.makedirs(ctmt_folder, exist_ok=True)
 
                 # Criar o novo arquivo .dss para este ctmt
-                file_path = os.path.join(ctmt_folder, 'Barra Slack.dss')
+                file_path = os.path.join(ctmt_folder, 'Barra_Slack.dss')
                 file = open(file_path, 'w')
 
                 # Adicionar o ctmt ao dicionario de ctmts processados (armazena o arquivo aberto)
