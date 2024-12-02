@@ -139,7 +139,7 @@ class DatabaseQuery:
         dados_ctmt = self.consulta_banco_ctmt()
 
         # Caminho principal para salvar as subpastas
-        base_dir = r'C:\modelagem_linhas'
+        base_dir = r'C:\MODELAGEM_LINHAS_MÉDIA_TENSÃO_BDGD_2023_ENERGISA'
 
         # Processa cada linha sequencialmente
         for linha in dados:
@@ -152,7 +152,7 @@ class DatabaseQuery:
             file_path = os.path.join(ctmt_folder, 'lines.dss')
             with open(file_path, 'a') as file:
                 # Chama a função para obter a bitola
-                area_seccao, RCC = self.carrega_bitolas_fios_awg_bdgd_2023(fas_con, bit_fas_1, bit_fas_2, bit_fas_3, bit_neu)
+                area_seccao, RDC = self.carrega_bitolas_fios_awg_bdgd_2023(fas_con, bit_fas_1, bit_fas_2, bit_fas_3, bit_neu)
 
                 # Cálculo do raio
                 raio = (math.sqrt(area_seccao / math.pi)) / 1000  # Raio em metros
@@ -189,7 +189,7 @@ class DatabaseQuery:
                 # Gerar o comando no formato desejado
                 command_line = f"""
                 ! Lines-ctmt: {ctmt}
-                New WireData.{cod_id}_data GMR = {GMR} DIAM = {2 * raio} RCC = {RCC} 
+                New WireData.{cod_id}_data GMR = {GMR} DIAM = {2 * raio} RDC = {RDC} 
                 ~ NormAmps = {cnom} Runits = km radunits = m gmrunits = m
 
                 New LineGeometry.{cod_id}_Geometry nconds = {len(fas_con)} nphases = {len(fases_presentes)}
