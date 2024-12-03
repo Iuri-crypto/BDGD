@@ -33,141 +33,41 @@ class DataBaseQuery:
     def consulta_banco(self):
         """ Consulta o banco de dados e coleta os dados"""
         try:
-            """ Consulta a tabela (untrmt) e coleta os dados das colunas:
-                 wkb_geometry, cod_id, pac_1, pac_2 e ctmt
 
-                 Consulta a tabela (eqtrmt) e coleta os dados da colunas:
-                 pot_nom, lig, ten_pri, ten_sec, lig_fas_p, lig_fas_s,
-                 r, xhl, uni_tr_mt
-
-                 Há a necessidade de cruzar os dados da coluna cod_id
-                 da tabela untrmt com a coluna uni_tr_mt da tabela
-                 eqtrmt, para pegar todas as informações dos trafos
-            """
             query = """
                 select
-                    ucmt_tab.ene_01,
-                    ucmt_tab.ene_02,
-                    ucmt_tab.ene_03,
-                    ucmt_tab.ene_04,
-                    ucmt_tab.ene_05,
-                    ucmt_tab.ene_06,
-                    ucmt_tab.ene_07,
-                    ucmt_tab.ene_08,
-                    ucmt_tab.ene_09,
-                    ucmt_tab.ene_10,
-                    ucmt_tab.ene_11,
-                    ucmt_tab.ene_12,
-                    ucmt_tab.tip_cc,
-                    ucmt_tab.gru_ten,
-                    crvcrg.tip_dia,
-                    ucmt_tab.pac,
-                    ucmt_tab.ctmt,
-                    ucmt_tab.fas_con,
-                    ucmt_tab.ten_forn,
-                    crvcrg.pot_01,
-                    crvcrg.pot_02,
-                    crvcrg.pot_03,
-                    crvcrg.pot_04,
-                    crvcrg.pot_05,
-                    crvcrg.pot_06,
-                    crvcrg.pot_07,
-                    crvcrg.pot_08,
-                    crvcrg.pot_09,
-                    crvcrg.pot_10,
-                    crvcrg.pot_11,
-                    crvcrg.pot_12,
-                    crvcrg.pot_13,
-                    crvcrg.pot_14,
-                    crvcrg.pot_15,
-                    crvcrg.pot_16,
-                    crvcrg.pot_17,
-                    crvcrg.pot_18,
-                    crvcrg.pot_19,
-                    crvcrg.pot_20,
-                    crvcrg.pot_21,
-                    crvcrg.pot_22,
-                    crvcrg.pot_23,
-                    crvcrg.pot_24,
-                    crvcrg.pot_25,
-                    crvcrg.pot_26,
-                    crvcrg.pot_27,
-                    crvcrg.pot_28,
-                    crvcrg.pot_29,
-                    crvcrg.pot_30,
-                    crvcrg.pot_31,
-                    crvcrg.pot_32,
-                    crvcrg.pot_33,
-                    crvcrg.pot_34,
-                    crvcrg.pot_35,
-                    crvcrg.pot_36,
-                    crvcrg.pot_37,
-                    crvcrg.pot_38,
-                    crvcrg.pot_39,
-                    crvcrg.pot_40,
-                    crvcrg.pot_41,
-                    crvcrg.pot_42,
-                    crvcrg.pot_43,
-                    crvcrg.pot_44,
-                    crvcrg.pot_45,
-                    crvcrg.pot_46,
-                    crvcrg.pot_47,
-                    crvcrg.pot_48,
-                    crvcrg.pot_49,
-                    crvcrg.pot_50,
-                    crvcrg.pot_51,
-                    crvcrg.pot_52,
-                    crvcrg.pot_53,
-                    crvcrg.pot_54,
-                    crvcrg.pot_55,
-                    crvcrg.pot_56,
-                    crvcrg.pot_57,
-                    crvcrg.pot_58,
-                    crvcrg.pot_59,
-                    crvcrg.pot_60,
-                    crvcrg.pot_61,
-                    crvcrg.pot_62,
-                    crvcrg.pot_63,
-                    crvcrg.pot_64,
-                    crvcrg.pot_65,
-                    crvcrg.pot_66,
-                    crvcrg.pot_67,
-                    crvcrg.pot_68,
-                    crvcrg.pot_69,
-                    crvcrg.pot_70,
-                    crvcrg.pot_71,
-                    crvcrg.pot_72,
-                    crvcrg.pot_73,
-                    crvcrg.pot_74,
-                    crvcrg.pot_75,
-                    crvcrg.pot_76,
-                    crvcrg.pot_77,
-                    crvcrg.pot_78,
-                    crvcrg.pot_79,
-                    crvcrg.pot_80,
-                    crvcrg.pot_81,
-                    crvcrg.pot_82,
-                    crvcrg.pot_83,
-                    crvcrg.pot_84,
-                    crvcrg.pot_85,
-                    crvcrg.pot_86,
-                    crvcrg.pot_87,
-                    crvcrg.pot_88,
-                    crvcrg.pot_89,
-                    crvcrg.pot_90,
-                    crvcrg.pot_91,
-                    crvcrg.pot_92,
-                    crvcrg.pot_93,
-                    crvcrg.pot_94,
-                    crvcrg.pot_95,
-                    crvcrg.pot_96,
-                    ucmt_tab.cod_id
+                   
+                    ucbt_tab.ene_01, ucbt_tab.ene_02, ucbt_tab.ene_03, ucbt_tab.ene_04, ucbt_tab.ene_05,
+                    ucbt_tab.ene_06, ucbt_tab.ene_07, ucbt_tab.ene_08, ucbt_tab.ene_09, ucbt_tab.ene_10,
+                    ucbt_tab.ene_11, ucbt_tab.ene_12, ucbt_tab.tip_cc, ucbt_tab.gru_ten, crvcrg.tip_dia,
+                    ucbt_tab.pac, ucbt_tab.ctmt, ucbt_tab.fas_con, ucbt_tab.ten_forn,
+                    crvcrg.pot_01, crvcrg.pot_02, crvcrg.pot_03, crvcrg.pot_04, crvcrg.pot_05, 
+                    crvcrg.pot_06, crvcrg.pot_07, crvcrg.pot_08, crvcrg.pot_09, crvcrg.pot_10,
+                    crvcrg.pot_11, crvcrg.pot_12, crvcrg.pot_13, crvcrg.pot_14, crvcrg.pot_15, 
+                    crvcrg.pot_16, crvcrg.pot_17, crvcrg.pot_18, crvcrg.pot_19, crvcrg.pot_20,
+                    crvcrg.pot_21, crvcrg.pot_22, crvcrg.pot_23, crvcrg.pot_24, crvcrg.pot_25, 
+                    crvcrg.pot_26, crvcrg.pot_27, crvcrg.pot_28, crvcrg.pot_29, crvcrg.pot_30, 
+                    crvcrg.pot_31, crvcrg.pot_32, crvcrg.pot_33, crvcrg.pot_34, crvcrg.pot_35, 
+                    crvcrg.pot_36, crvcrg.pot_37, crvcrg.pot_38, crvcrg.pot_39, crvcrg.pot_40,
+                    crvcrg.pot_41, crvcrg.pot_42, crvcrg.pot_43, crvcrg.pot_44, crvcrg.pot_45, 
+                    crvcrg.pot_46, crvcrg.pot_47, crvcrg.pot_48, crvcrg.pot_49, crvcrg.pot_50, 
+                    crvcrg.pot_51, crvcrg.pot_52, crvcrg.pot_53, crvcrg.pot_54, crvcrg.pot_55, 
+                    crvcrg.pot_56, crvcrg.pot_57, crvcrg.pot_58, crvcrg.pot_59, crvcrg.pot_60,
+                    crvcrg.pot_61, crvcrg.pot_62, crvcrg.pot_63, crvcrg.pot_64, crvcrg.pot_65,
+                    crvcrg.pot_66, crvcrg.pot_67, crvcrg.pot_68, crvcrg.pot_69, crvcrg.pot_70,
+                    crvcrg.pot_71, crvcrg.pot_72, crvcrg.pot_73, crvcrg.pot_74, crvcrg.pot_75,
+                    crvcrg.pot_76, crvcrg.pot_77, crvcrg.pot_78, crvcrg.pot_79, crvcrg.pot_80,
+                    crvcrg.pot_81, crvcrg.pot_82, crvcrg.pot_83, crvcrg.pot_84, crvcrg.pot_85,
+                    crvcrg.pot_86, crvcrg.pot_87, crvcrg.pot_88, crvcrg.pot_89, crvcrg.pot_90,
+                    crvcrg.pot_91, crvcrg.pot_92, crvcrg.pot_93, crvcrg.pot_94, crvcrg.pot_95,
+                    crvcrg.pot_96, ucbt_tab.cod_id
+             
                 FROM 
-                    ucmt_tab
+                    ucbt_tab
                 JOIN
-                    crvcrg ON ucmt_tab.tip_cc = crvcrg.cod_id
+                    crvcrg ON ucbt_tab.tip_cc = crvcrg.cod_id
                 WHERE
-                    ucmt_tab.gru_ten = 'MT'
+                    ucbt_tab.gru_ten = 'BT'
 
             """
             # Executa a consulta
@@ -183,7 +83,7 @@ class DataBaseQuery:
         dados = self.consulta_banco()
 
         # Caminho principal para salvar as subpastas
-        base_dir = r'C:\MODELAGEM_CARGAS_TENSÃO_BDGD_2023_ENERGISA'
+        base_dir = r'C:\MODELAGEM_CARGAS_BAIXA_TENSÃO_BDGD_2023_ENERGISA'
 
         # Dicionário para armazenar os ctmt já processados
         ctmts_processados = {}
