@@ -93,8 +93,10 @@ class DatabaseQuery:
                 # Se o ctmt já foi processado, usar o arquivo existente e abrir no modo append ('a')
                 file = ctmts_processados[ctmt]
 
+            fases_validades = [letra for letra in fas_con if letra in ['A', 'B', 'C', 'N']]
+
             # Gerar o comando para cada linha
-            if len(fas_con) == 3:
+            if len(fases_validades) == 3:
                 command_linecode = f"""
                ! Linecode-ctmt: {ctmt}
                 New linecode.{tip_cnd} nphases=3 BaseFreq=60
@@ -104,7 +106,7 @@ class DatabaseQuery:
                 ~Normamps = {cnom}
                 ~Emergamps = {cmax_renamed}
                 """
-            elif len(fas_con) == 2:
+            elif len(fases_validades) == 2:
                 command_linecode = f"""
                ! Linecode-ctmt: {ctmt}
                 New linecode.{tip_cnd} nphases=2 BaseFreq=60
@@ -114,7 +116,7 @@ class DatabaseQuery:
                 ~Normamps = {cnom}
                 ~Emergamps = {cmax_renamed}                
                 """
-            elif len(fas_con) == 1:
+            elif len(fases_validades) == 1:
                 command_linecode = f"""
                 ! Linecode-ctmt: {ctmt}
                 New linecode.{tip_cnd} nphases=1 BaseFreq=60

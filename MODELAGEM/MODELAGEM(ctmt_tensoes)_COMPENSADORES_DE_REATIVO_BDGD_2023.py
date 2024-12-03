@@ -109,16 +109,18 @@ class DatabaseQuery:
 
             rec_fases = mapa_fases.get(fas_con, '')
 
+            fases = [fas for fas in fas_con if fas in ['A', 'B', 'C']]
+
             # Gerar o comando dependendo do tipo de unidade
             if tip_unid == 56:
                 command_linecode = f"""
                                ! Linecode-ctmt: {ctmt}
-                               New Reactor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {ten} kVAR = {pot_nom} phases = {len(rec_fases)} conn = wye
+                               New Reactor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {ten} kVAR = {pot_nom} phases = {len(fases)} conn = wye
                                 """
             else:
                 command_linecode = f"""
                                ! Linecode-ctmt: {ctmt}
-                               New Capacitor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {ten} kVAR = {pot_nom} phases = {len(rec_fases)} conn = wye
+                               New Capacitor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {ten} kVAR = {pot_nom} phases = {len(fases)} conn = wye
                                """
 
             # Escrever o comando no arquivo .dss

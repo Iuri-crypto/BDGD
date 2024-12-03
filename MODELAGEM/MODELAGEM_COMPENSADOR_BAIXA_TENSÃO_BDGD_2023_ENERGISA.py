@@ -101,6 +101,8 @@ class DatabaseQuery:
                 'CNA': '.1', 'ANB': '.1.2', 'BNC': '.2.3', 'CA': '.1.3',
             }
 
+            fases = [fas for fas in fas_con if fas in ['A', 'B', 'C']]
+
             # Definir o valor de tensão baseado em 'ten_nom'
             if ten_nom == 49:
                 ten = 13.8
@@ -113,12 +115,12 @@ class DatabaseQuery:
             if tip_unid == 56:
                 command_linecode = f"""
                                ! Linecode-ctmt: {ctmt}
-                               New Reactor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {ten} kVAR = {pot_nom} phases = {len(rec_fases)} conn = wye
+                               New Reactor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {ten} kVAR = {pot_nom} phases = {len(fases)} conn = wye
                                 """
             else:
                 command_linecode = f"""
                                ! Linecode-ctmt: {ctmt}
-                               New Capacitor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {ten} kVAR = {pot_nom} phases = {len(rec_fases)} conn = wye
+                               New Capacitor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {ten} kVAR = {pot_nom} phases = {len(fases)} conn = wye
                                """
 
             # Escrever o comando no arquivo .dss
