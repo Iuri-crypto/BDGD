@@ -83,8 +83,7 @@ class DatabaseQuery:
             else:
                 file = ctmts_processados[ctmt]
 
-            # fases = {'A', 'B', 'C', 'N'}
-            # fases_presentes = [letra for letra in fas_con if letra in fases]
+
 
             mapa_fases = {
                 'ABC': '.1.2.3', 'ACB': '.1.3.2', 'BAC': '.1.2.3', 'BCA': '.1.2.3', 'CAB': '.1.2.3', 'CBA': '.1.2.3',
