@@ -40,7 +40,9 @@ class DatabaseQuery:
                         ugmt_tab.ctmt,
                         ugmt_tab.fas_con,
                         ugmt_tab.ten_con,
-                        ugmt_tab.pot_inst
+                        ugmt_tab.pot_inst,
+                        ugmt_tab.ceg_gd,
+                        ugmt_tab.
                 FROM 
                     ssdmt;       
             """
@@ -111,6 +113,13 @@ class DatabaseQuery:
                 tensao = 127
 
             # Gerar o comando para o OpenDSS
+            command_switch = f"""
+                New xycurve.mypvst_{cod_id} npts = {} xarray = {} yarray = {} !curva de desempenho do painel em função da temperatura (colocar uma curva constante )
+                New xycurve.myeff_{cod_id} npts = {} xarray = {} yarray = {}  ! eficiência do sistema para diferentes valores de carga
+                New loadshape.myirrad_{cod_id} npts = {} interval = {} mult = {} ! distribui os valores da irradição solar ao longo das 24 horas do dia e noite 
+                New tshape.mytemp_{cod_id} npts = {} interval = {} temp = {}  ! define a temperatura ambiente ao longo das 24 horas
+                New pvsystem.pv_{} phases = {} conn = {} bus1 = {} kv = {} kva = {} pmpp = {} pf = {} %cutin = {} %cutout = {} varfollowinverter = {} effcurve = myeff_{cod_id} p-tcurve = mypvst_{cod_id} daily = myirrad_{cod_id} tdaily = mytemp_{cod_id}
+                """
             command_switch = f"""
                 ! Generator-ctmt: {ctmt}
                 New Generator.{cod_id} Bus1 = {pac}{rec_fases} kw = {pot_inst} fp = {} kva = {} kv = {int(tensao) / 1000} xdp = {} xdpp = {} h = {}
