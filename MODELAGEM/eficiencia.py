@@ -22,7 +22,7 @@ P_limite_inversor = potencia_nominal_inversor * 0.2  # A eficiência começa a s
 k_inversor = 4  # Constante de saturação da eficiência do inversor
 
 # Energia total desejada para o dia em kWh
-energia_desejada = 100  # Exemplo: meta de 20 kWh para o dia
+energia_desejada = 100  # Exemplo: meta de 100 kWh para o dia
 
 # Calcular a potência gerada bruta a cada hora (simplificação)
 potencia_gerada = (irradiance['ghi'] / irradiance['ghi'].max()) * potencia_instalada
@@ -34,16 +34,22 @@ fator_ajuste = energia_desejada / energia_total_gerada  # Fator para ajustar a p
 # Ajustar a potência gerada para atingir a energia desejada
 potencia_gerada_ajustada = potencia_gerada * fator_ajuste
 
-# Função de eficiência do inversor
+# Função de eficiência do inversor com saturação abaixo de 20%
 def eficiencia_inversor(P_entrada, P_nominal, eta_max, P_limite, k):
-    return eta_max / (1 + np.exp(-k * (P_entrada - P_limite))) * 100  # Eficiência em %
+    # Eficiência começa a cair abaixo de 20% da potência nominal e se estabiliza em 100% acima de 100%
+    eficiencia = eta_max / (1 + np.exp(-k * (P_entrada - P_limite)))
+    eficiencia = np.clip(eficiencia, 0, 100)  # Garantir que a eficiência fique entre 0% e 100%
+    return eficiencia  # Eficiência em %
 
 # Calcular a eficiência do inversor a cada hora
 eficiencia_inversor_valores = eficiencia_inversor(potencia_gerada_ajustada, potencia_nominal_inversor,
                                                   eficiencia_maxima_inversor, P_limite_inversor, k_inversor)
 
 # Calcular a potência final considerando a eficiência do inversor
-potencia_final_com_eficiencia = potencia_gerada_ajustada * (eficiencia_inversor_valores / 100)
+potencia_com_eficiencia = potencia_gerada_ajustada * (eficiencia_inversor_valores / 100)
+
+# Limitar a potência final para a potência nominal do inversor
+potencia_final_com_eficiencia = np.minimum(potencia_com_eficiencia, potencia_nominal_inversor)
 
 # Plotar os gráficos
 
