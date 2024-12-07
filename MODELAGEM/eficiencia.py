@@ -2,83 +2,133 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import pvlib
 import numpy as np
+from pvlib import location
 
-# Definir a localização
-latitude = -15.6010  # Exemplo: Cuiabá
-longitude = -56.0979
-site = pvlib.location.Location(latitude, longitude)
+# Função para calcular a potência gerada com base na irradiância (GHI)
+def calcular_potencia_gerada(irradiancia, potencia_instalada_kwp, eficiencia):
+    """
+    Calcula a potência gerada pelo painel fotovoltaico com base na irradiância e eficiência.
+    """
+    potencia = potencia_instalada_kwp * (irradiancia / 1000) * eficiencia
+    return potencia
 
-# Definir o intervalo de tempo (24 horas do dia 1 de dezembro de 2024)
-times = pd.date_range('2024-12-01 00:00:00', '2024-12-01 23:00:00', freq='H', tz='America/Sao_Paulo')
+# Função para aplicar a saturação do inversor
+def aplicar_saturacao_inversor(potencia_gerada, potencia_max_inversor_kw):
+    """
+    Limita a potência gerada pela capacidade do inversor.
+    """
+    return np.minimum(potencia_gerada, potencia_max_inversor_kw)
 
-# Obter a irradiância solar global (GHI) para o local
-irradiance = site.get_clearsky(times)
+# Função para estimar a temperatura com base na hora do dia
+def estimar_temperatura(hora, latitude):
+    """
+    Estima a temperatura com base na hora do dia e latitude (simulação simples).
+    """
+    T_max = 30  # Temperatura máxima média ao meio-dia (em °C)
+    T_min = 18  # Temperatura mínima média à noite (em °C)
+    temperatura = (T_max + T_min) / 2 + (T_max - T_min) / 2 * np.sin(np.pi * (hora - 6) / 12)
+    return temperatura
 
-# Definir parâmetros do painel fotovoltaico e do inversor
-potencia_instalada = 5  # Potência instalada do painel em kW
-potencia_nominal_inversor = 4.5  # Potência nominal do inversor em kW
-eficiencia_maxima_inversor = 0.98  # Eficiência máxima do inversor (98%)
-P_limite_inversor = potencia_nominal_inversor * 0.2  # A eficiência começa a saturar abaixo de 20% da potência nominal
-k_inversor = 4  # Constante de saturação da eficiência do inversor
+# Função principal para calcular e plotar os parâmetros com base nas coordenadas e dados fornecidos
+def calcular_e_plotar_irradiancia_temperatura_e_desempenho(latitude, longitude, altitude, potencia_instalada_kwp, eficiencia, potencia_max_inversor_kw, energia_desejada):
+    """
+    Função que realiza os cálculos e gera os gráficos com base nas coordenadas e parâmetros fornecidos.
+    """
+    # Definir a localização com as coordenadas inseridas
+    site = location.Location(latitude, longitude, altitude=altitude)
 
-# Energia total desejada para o dia em kWh
-energia_desejada = 100  # Exemplo: meta de 100 kWh para o dia
+    # Definir o intervalo de tempo para o qual você quer calcular a irradiância
+    times = pd.date_range('2024-12-01 00:00:00', '2024-12-01 23:00:00', freq='h', tz='America/Sao_Paulo')
 
-# Calcular a potência gerada bruta a cada hora (simplificação)
-potencia_gerada = (irradiance['ghi'] / irradiance['ghi'].max()) * potencia_instalada
+    # Calcular a irradiância global horizontal (GHI), difusa (DHI) e direta (DNI)
+    solar_position = site.get_solarposition(times)
+    irradiance = site.get_clearsky(times)
 
-# Ajuste da potência gerada para atingir a energia desejada
-energia_total_gerada = potencia_gerada.sum()  # Energia total gerada sem ajuste
-fator_ajuste = energia_desejada / energia_total_gerada  # Fator para ajustar a potência
+    # Estimar a temperatura para cada hora
+    temperatura = [estimar_temperatura(hora.hour, latitude) for hora in times]
 
-# Ajustar a potência gerada para atingir a energia desejada
-potencia_gerada_ajustada = potencia_gerada * fator_ajuste
+    # Calcular a potência gerada com base na irradiância (GHI)
+    potencia_gerada = calcular_potencia_gerada(irradiance['ghi'], potencia_instalada_kwp, eficiencia)
 
-# Função de eficiência do inversor com saturação abaixo de 20%
-def eficiencia_inversor(P_entrada, P_nominal, eta_max, P_limite, k):
-    # Eficiência começa a cair abaixo de 20% da potência nominal e se estabiliza em 100% acima de 100%
-    eficiencia = eta_max / (1 + np.exp(-k * (P_entrada - P_limite)))
-    eficiencia = np.clip(eficiencia, 0, 100)  # Garantir que a eficiência fique entre 0% e 100%
-    return eficiencia  # Eficiência em %
+    # Ajuste da potência gerada para atingir a energia desejada
+    energia_total_gerada = potencia_gerada.sum()  # Energia total gerada sem ajuste
+    fator_ajuste = energia_desejada / energia_total_gerada  # Fator para ajustar a potência
 
-# Calcular a eficiência do inversor a cada hora
-eficiencia_inversor_valores = eficiencia_inversor(potencia_gerada_ajustada, potencia_nominal_inversor,
-                                                  eficiencia_maxima_inversor, P_limite_inversor, k_inversor)
+    # Ajustar a potência gerada para atingir a energia desejada
+    potencia_gerada_ajustada = potencia_gerada * fator_ajuste
 
-# Calcular a potência final considerando a eficiência do inversor
-potencia_com_eficiencia = potencia_gerada_ajustada * (eficiencia_inversor_valores / 100)
+    # Aplicar a saturação do inversor
+    potencia_gerada_limitada = aplicar_saturacao_inversor(potencia_gerada_ajustada, potencia_max_inversor_kw)
 
-# Limitar a potência final para a potência nominal do inversor
-potencia_final_com_eficiencia = np.minimum(potencia_com_eficiencia, potencia_nominal_inversor)
+    # Plotar os gráficos
+    plt.figure(figsize=(12, 10))
 
-# Plotar os gráficos
+    # Subgráfico 1: Irradiância
+    plt.subplot(3, 1, 1)  # Primeiro gráfico para irradiâncias
+    plt.plot(times, irradiance['ghi'], label='Irradiância Global Horizontal (GHI)', color='orange')
+    plt.plot(times, irradiance['dni'], label='Irradiância Direta Normal (DNI)', color='red')
+    plt.plot(times, irradiance['dhi'], label='Irradiância Difusa Horizontal (DHI)', color='blue')
+    plt.title(f'Curvas de Irradiância - Local ({latitude}, {longitude}) - 1º Dezembro 2024')
+    plt.xlabel('Hora')
+    plt.ylabel('Irradiância (W/m²)')
+    plt.xticks(rotation=45)
+    plt.grid(True)
+    plt.legend()
 
-# Gráfico da potência gerada ajustada ao longo do dia
-plt.figure(figsize=(12, 8))
+    # Subgráfico 2: Temperatura
+    plt.subplot(3, 1, 2)  # Segundo gráfico para temperatura
+    plt.plot(times, temperatura, label='Temperatura (°C)', color='green')
+    plt.title('Temperatura ao Longo do Dia')
+    plt.xlabel('Hora')
+    plt.ylabel('Temperatura (°C)')
+    plt.xticks(rotation=45)
+    plt.grid(True)
+    plt.legend()
 
-# Gráfico de potência gerada ajustada
-plt.subplot(2, 1, 1)
-plt.plot(times, potencia_gerada_ajustada, label='Potência Gerada Ajustada (kW)', color='orange')
-plt.title(f'Potência Gerada pelo Painel Fotovoltaico (Ajustada para {energia_desejada} kWh)')
-plt.xlabel('Hora')
-plt.ylabel('Potência Gerada (kW)')
-plt.xticks(rotation=45)
-plt.grid(True)
-plt.legend()
+    # Subgráfico 3: Potência Gerada
+    plt.subplot(3, 1, 3)  # Terceiro gráfico para a potência gerada
+    plt.plot(times, potencia_gerada_limitada, label=f'Potência Gerada (Ajustada para {energia_desejada} kWh)', color='purple')
+    plt.title(f'Potência Gerada pelo Painel Fotovoltaico')
+    plt.xlabel('Hora')
+    plt.ylabel('Potência Gerada (kW)')
+    plt.xticks(rotation=45)
+    plt.grid(True)
+    plt.legend()
 
-# Gráfico de potência final considerando a eficiência do inversor
-plt.subplot(2, 1, 2)
-plt.plot(times, potencia_final_com_eficiencia, label='Potência Final (com Eficiência do Inversor)', color='blue')
-plt.title('Potência Final Gerada pelo Sistema (com Eficiência do Inversor)')
-plt.xlabel('Hora')
-plt.ylabel('Potência Final (kW)')
-plt.xticks(rotation=45)
-plt.grid(True)
-plt.legend()
+    # Ajustar layout para melhor visualização
+    plt.tight_layout()
 
-plt.tight_layout()
-plt.show()
+    # Exibir o gráfico
+    plt.show()
 
-# Exibir a energia total gerada e a energia desejada
-energia_gerada_final = potencia_final_com_eficiencia.sum()  # Energia total gerada após ajuste
-print(f'Energia gerada ajustada ao longo do dia: {energia_gerada_final:.2f} kWh')
+# Função para obter as coordenadas e parâmetros do usuário
+def obter_parametros_usuario():
+    """
+    Função que obtém as coordenadas e parâmetros de entrada do usuário.
+    """
+    latitude = float(input("Digite a latitude do local: "))
+    longitude = float(input("Digite a longitude do local: "))
+    altitude = float(input("Digite a altitude do local (em metros): "))
+    potencia_instalada_kwp = float(input("Digite a potência instalada do painel fotovoltaico (em kWp): "))
+    eficiencia = float(input("Digite a eficiência do painel fotovoltaico (em %): ")) / 100  # Eficiência em % convertida para decimal
+    potencia_max_inversor_kw = float(input("Digite a potência máxima do inversor (em kW): "))
+    energia_desejada = float(input("Digite a energia desejada para o dia (em kWh): "))
+
+    return latitude, longitude, altitude, potencia_instalada_kwp, eficiencia, potencia_max_inversor_kw, energia_desejada
+
+# Função principal que executa o processo
+def main():
+    while True:
+        print("\nAgora você pode inserir os dados para um novo cálculo.")
+        parametros_usuario = obter_parametros_usuario()
+        calcular_e_plotar_irradiancia_temperatura_e_desempenho(*parametros_usuario)
+
+        # Perguntar se deseja continuar com novos cálculos
+        continuar = input("\nDeseja calcular para outro local? (s/n): ").strip().lower()
+        if continuar != 's':
+            print("Fim do processo.")
+            break
+
+# Chama a função principal para iniciar o programa
+if __name__ == "__main__":
+    main()
