@@ -1,17 +1,5 @@
 import psycopg2
-import matplotlib.pyplot as plt
-import pandas as pd
-import pvlib
-import numpy as np
 import os
-from pvlib import location
-from geopy.geocoders import Nominatim
-import requests
-
-#from MODELAGEM.MODELAGENS_ERRADAS.modelagem_ctmt_linhas_2 import ctmt_value
-#from MODELAGEM.eficiencia import aplicar_saturacao_inversor
-#from MODELAGEM.expressão_inversor import eficiencia, potencia_max_inversor_kw, energia_desejada, \
- #   calcular_potencia_gerada
 
 
 class DatabaseQuery:
@@ -85,7 +73,7 @@ class DatabaseQuery:
             demanda_contratada = linha[20]
             ceg_gd = linha[7]
 
-            if ceg_gd[:2] != 'GD' and 'UFV':
+            if ceg_gd[:2] != ('GD' and 'UFV'):
 
                 if ctmt not in ctmts_processados:
                     ctmt_folder = os.path.join(base_dir, str(ctmt))
