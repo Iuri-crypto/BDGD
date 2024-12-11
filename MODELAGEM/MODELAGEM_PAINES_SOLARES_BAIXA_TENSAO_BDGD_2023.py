@@ -90,7 +90,7 @@ class DatabaseQuery:
             demanda_contratada = linha[20]
             ceg_gd = linha[7]
 
-            if ceg_gd[:2] == 'GD':
+            if ceg_gd[:2] == 'GD' or 'UFV':
                 if ctmt not in ctmts_processados:
                     ctmt_folder = os.path.join(base_dir, str(ctmt))
                     os.makedirs(ctmt_folder, exist_ok=True)
