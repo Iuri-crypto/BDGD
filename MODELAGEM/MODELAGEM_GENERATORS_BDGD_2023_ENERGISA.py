@@ -46,17 +46,17 @@ class DatabaseQuery:
             # Consulta a tabela SSDMT para extrair as colunas especificadas
             query = """
                 SELECT 
-                        ugmt_tab.cod_id, ugmt_tab.pac, ugmt_tab.ctmt, ugmt_tab.fas_con,
-                        ugmt_tab.ten_con, ugmt_tab.pot_inst, ugmt_tab.cep,
-                        ugmt_tab.ceg_gd,
-                        ugmt_tab.ene_01, ugmt_tab.ene_02, ugmt_tab.ene_03,
-                        ugmt_tab.ene_04, ugmt_tab.ene_05, ugmt_tab.ene_06,
-                        ugmt_tab.ene_07, ugmt_tab.ene_08, ugmt_tab.ene_09,
-                        ugmt_tab.ene_10, ugmt_tab.ene_11, ugmt_tab.ene_12,
-                        ugmt_tab.dem_cont
+                        ugbt_tab.cod_id, ugbt_tab.pac, ugbt_tab.ctmt, ugbt_tab.fas_con,
+                        ugbt_tab.ten_con, ugbt_tab.pot_inst, ugbt_tab.cep,
+                        ugbt_tab.ceg_gd,
+                        ugbt_tab.ene_01, ugbt_tab.ene_02, ugbt_tab.ene_03,
+                        ugbt_tab.ene_04, ugbt_tab.ene_05, ugbt_tab.ene_06,
+                        ugbt_tab.ene_07, ugbt_tab.ene_08, ugbt_tab.ene_09,
+                        ugbt_tab.ene_10, ugbt_tab.ene_11, ugbt_tab.ene_12,
+                        ugbt_tab.dem_cont
 
                 FROM 
-                    ugmt_tab;       
+                    ugbt_tab;       
             """
             # Executa a consulta
             self.cur.execute(query)
