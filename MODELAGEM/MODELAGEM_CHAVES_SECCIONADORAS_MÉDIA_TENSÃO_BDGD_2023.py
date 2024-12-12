@@ -35,12 +35,9 @@ class DatabaseQuery:
             # Consulta a tabela SSDMT para extrair as colunas especificadas
             query = """
                 SELECT 
-                        unsemt.pac_1,
-                        unsemt.pac_2,
-                        unsemt.cod_id,
-                        unsemt.ctmt
+                    pac_1,pac_2,cod_id,ctmt
                 FROM 
-                    ssdmt;       
+                    unsemt;       
             """
             # Executa a consulta
             self.cur.execute(query)
@@ -84,10 +81,11 @@ class DatabaseQuery:
                 file = ctmts_processados[ctmt]
 
             # Gerar o comando para o OpenDSS
-            command_switch = f"""
-                ! Linecode-ctmt: {ctmt}
-                New Switch.{cod_id} Bus1={pac_1} Bus2={pac_2} Mode=Close
-                """
+            command_switch = (
+                f'! Linecode-ctmt: {ctmt}\n'
+                f'New Switch.{cod_id} Bus1={pac_1} Bus2={pac_2} Mode=Close\n'
+            )
+
 
             # Escrever o comando no arquivo.dss
             if file:

@@ -35,12 +35,10 @@ class DatabaseQuery:
             # Consulta a tabela SSDMT para extrair as colunas especificadas
             query = """
                 SELECT 
-                        unsemt.pac_1,
-                        unsemt.pac_2,
-                        unsemt.cod_id,
-                        unsemt.ctmt
+                        pac_1, pac_2, cod_id, ctmt
+ 
                 FROM 
-                    ssdmt;       
+                     unsebt;       
             """
             # Executa a consulta
             self.cur.execute(query)
@@ -50,7 +48,7 @@ class DatabaseQuery:
             print(f"Erro ao gerar comandos para o OpenDSS: {e}")
             return []
 
-    def lines(self):
+    def Chaves_seccionadoras_commnads(self):
         """Cria comandos no formato desejado para o OpenDSS"""
         dados = self.consulta_banco()
 
@@ -84,10 +82,11 @@ class DatabaseQuery:
                 file = ctmts_processados[ctmt]
 
             # Gerar o comando para o OpenDSS
-            command_switch = f"""
-                ! Linecode-ctmt: {ctmt}
-                New Switch.{cod_id} Bus1={pac_1} Bus2={pac_2} Mode=Close
-                """
+            command_switch = (
+                f'! Linecode-ctmt: {ctmt} \n'
+                f'New Switch.{cod_id} Bus1={pac_1} Bus2={pac_2} Mode=Close \n'
+            )
+
 
             # Escrever o comando no arquivo.dss
             if file:
@@ -122,7 +121,7 @@ if __name__ == "__main__":
     db_query.connect()
 
     # Gerar comandos para o OpenDSS
-    db_query.lines()
+    db_query.Chaves_seccionadoras_commnads()
 
     # Fechar a conexão com o banco de dados
     db_query.close()

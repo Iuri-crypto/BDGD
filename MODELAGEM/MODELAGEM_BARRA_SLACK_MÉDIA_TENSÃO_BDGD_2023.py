@@ -34,11 +34,9 @@ class DatabaseQuery:
             # Consulta a tabela SSDMT para extrair as colunas especificadas
             query = """
                 SELECT 
-                        ctmt.cod_id,
-                        ctmt.ten_ope,
-                        ctmt.ten_nominal_voltage
+                       cod_id,ten_ope,ten_nominal_voltage 
                 FROM 
-                    ssdmt;       
+                    ctmt;       
             """
             # Executa a consulta
             self.cur.execute(query)
@@ -48,7 +46,7 @@ class DatabaseQuery:
             print(f"Erro ao gerar comandos para o OpenDSS: {e}")
             return []
 
-    def lines(self):
+    def Slack_commands(self):
         """Cria comandos no formato desejado para o OpenDSS"""
         dados = self.consulta_banco()
 
@@ -86,12 +84,12 @@ class DatabaseQuery:
                 file = ctmts_processados[ctmt]
 
             # Gerar o comando no formato desejado
-            command_linecode = f"""
+            command_linecode = (
             
-                           ! Reactor-ctmt: {ctmt}
-                            New Object = Circuit.{ctmt} 
-                            ~ basekv = {ten_nom_voltage / 1000} pu = {ten_ope} angle = 0 
-                            """
+               f'! Reactor-ctmt: {ctmt}\n'
+                f'New Object = Circuit.{ctmt}\n' 
+                f'~ basekv = {ten_nom_voltage / 1000} pu = {ten_ope} angle = 0\n'
+            )
 
             # Escrever o comando no arquivo.dss
             if file:
@@ -125,7 +123,7 @@ if __name__ == "__main__":
     db_query.connect()
 
     # Gerar comandos para o OpenDSS
-    db_query.lines()
+    db_query.Slack_commands()
 
     # Fechar a conexão com o banco de dados
     db_query.close()

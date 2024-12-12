@@ -76,9 +76,16 @@ class DatabaseQuery:
             cod_id, pac, ctmt, fas_con, ten_con, pot_inst, cep, ceg_gd = linha
 
             if not ceg_gd.startswith(('GD', 'UFV')):
+                # Remove espaços extras ou caracteres inválidos de `ctmt`
+                ctmt = str(ctmt).strip()
+
+                if not ctmt:  # Ignorar se `ctmt` for vazio
+                    print(f"CTMT inválido encontrado para linha: {linha}")
+                    continue
+
                 # Define o diretório e cria a pasta do CTMT
                 if ctmt not in ctmts_processados:
-                    ctmt_folder = os.path.join(base_dir, str(ctmt))
+                    ctmt_folder = os.path.join(base_dir, ctmt)
                     os.makedirs(ctmt_folder, exist_ok=True)
                     ctmts_processados[ctmt] = open(os.path.join(ctmt_folder, 'Generators.dss'), 'a')
 

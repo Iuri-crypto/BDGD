@@ -54,7 +54,7 @@ class DatabaseQuery:
             print(f"Erro ao executar a consulta SSDMT: {e}")
             return []
 
-    def lines(self):
+    def Compensadores_commands(self):
         """Cria comandos no formato desejado para o OpenDSS, incluindo os valores de tensão"""
         dados_ssmt = self.consulta_banco()  # Dados da consulta SSDMT
 
@@ -113,15 +113,16 @@ class DatabaseQuery:
 
             # Gerar o comando dependendo do tipo de unidade
             if tip_unid == 56:
-                command_linecode = f"""
-                               ! Linecode-ctmt: {ctmt}
-                               New Reactor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {ten} kVAR = {pot_nom} phases = {len(fases)} conn = wye
-                                """
+                command_linecode = (
+                       f'! Linecode-ctmt: {ctmt}\n'
+                       f"New Reactor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {ten} kVAR = {pot_nom} phases = {len(fases)} conn = wye\n"
+
+                )
             else:
-                command_linecode = f"""
-                               ! Linecode-ctmt: {ctmt}
-                               New Capacitor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {ten} kVAR = {pot_nom} phases = {len(fases)} conn = wye
-                               """
+                command_linecode = (
+                       f'! Linecode-ctmt: {ctmt}\n'
+                       f'New Capacitor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {ten} kVAR = {pot_nom} phases = {len(fases)} conn = wye\n'
+                )
 
             # Escrever o comando no arquivo .dss
             if file:
@@ -151,5 +152,5 @@ if __name__ == "__main__":
 
     db_query = DatabaseQuery(host, port, dbname, user, password)
     db_query.connect()
-    db_query.lines()
+    db_query.Compensadores_commands()
     db_query.close()
