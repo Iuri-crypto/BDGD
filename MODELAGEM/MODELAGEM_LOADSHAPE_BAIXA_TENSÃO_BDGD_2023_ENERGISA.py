@@ -1,11 +1,12 @@
 import psycopg2
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 
 class DataBaseQuery:
-    def __init__(self, dbhost, dbport, dbdbname, dbuser, dbpassword):
-        """Inicializa os parâmetros de conexão"""
+    def __init__(self, dbhost, dbport, dbdbname, dbuser, dbpassword, total_rows):
+        """Inicializa os parâmetros de conexão e o total de registros"""
         self.host = dbhost
         self.port = dbport
         self.dbname = dbdbname
@@ -13,6 +14,7 @@ class DataBaseQuery:
         self.password = dbpassword
         self.conn = None
         self.cur = None
+        self.total_rows = total_rows  # Recebe o total de registros
 
     def connect(self):
         """Estabelece a conexão com o Banco de Dados do PostgreSQL"""
@@ -29,10 +31,10 @@ class DataBaseQuery:
         except Exception as e:
             print(f"Erro ao conectar ao banco de dados: {e}")
 
-    def consulta_banco(self):
-        """Consulta o banco de dados e coleta os dados"""
+    def consulta_banco(self, limit=1000, offset=0):
+        """Consulta o banco de dados e coleta os dados em blocos"""
         try:
-            query = """
+            query = f"""
                 SELECT
                     ucbt_tab.ene_01, ucbt_tab.ene_02, ucbt_tab.ene_03, ucbt_tab.ene_04, ucbt_tab.ene_05,
                     ucbt_tab.ene_06, ucbt_tab.ene_07, ucbt_tab.ene_08, ucbt_tab.ene_09, ucbt_tab.ene_10,
@@ -64,69 +66,80 @@ class DataBaseQuery:
                     crvcrg ON ucbt_tab.tip_cc = crvcrg.cod_id
                 WHERE
                     ucbt_tab.gru_ten = 'BT'
+                LIMIT {limit} OFFSET {offset};
             """
-            # Executa a consulta
             self.cur.execute(query)
             results = self.cur.fetchall()
             return results
         except Exception as e:
-            print(f"Erro ao gerar comandos para o OpenDSS: {e}")
+            print(f"Erro ao realizar consulta: {e}")
             return []
 
-    def loads(self):
-        """Cria comandos no formato arquivo.dss (bloco de notas) para o OpenDSS"""
-        dados = self.consulta_banco()
+    def criar_arquivo_para_ene(self, ene_index, ene_values, pot_values, tip_dia, cod_id, ctmt_folder):
+        """Cria um arquivo específico para o ene usando processamento paralelo"""
+        ene_filename = f"LoadShape_ene_{ene_index + 1}.txt"
+        file_path = os.path.join(ctmt_folder, ene_filename)
 
+        # Abrir o arquivo específico para 'ene' (sempre sobreescrevendo)
+        with open(file_path, 'a') as file:
+            # Fator de Ajuste para a curva de carga
+            energia_curva_de_carga = sum(pot_values) * 0.25
+            f = (int(ene_values[ene_index]) / 30) / energia_curva_de_carga
+
+            # Calcular potências ajustadas
+            potencias_ajustadas = [f * pot for pot in pot_values]
+
+            # Escrever no arquivo de acordo com o tipo de dia
+            if tip_dia == 'DU':
+                command_loadshapes = f"LoadShape_dia_util.{cod_id} = {', '.join(map(str, potencias_ajustadas))}\n"
+            else:
+                command_loadshapes = f"LoadShape_fds.{cod_id} = {', '.join(map(str, potencias_ajustadas))}\n"
+
+            # Escrever o comando no arquivo
+            file.write(command_loadshapes)
+
+    def loads(self, limit=1000):
+        """Cria comandos no formato arquivo.dss (bloco de notas) para o OpenDSS em blocos"""
         # Caminho principal para salvar as subpastas
         base_dir = r'C:\MODELAGEM_LOADSHAPES_BAIXA_TENSÃO_BDGD_2023_ENERGISA'
 
         # Dicionário para armazenar os ctmt já processados
         ctmts_processados = {}
 
-        # Iterar sobre os dados e gerar uma subpasta para cada ctmt
-        for index, linha in enumerate(dados):
-            ene_values = linha[:12]  # ene_01 a ene_12
-            tip_cc = linha[12]
-            gru_ten = linha[13]
-            tip_dia = linha[14]
-            pac = linha[15]
-            ctmt = linha[16]
-            pot_values = linha[19:115]  # pot_01 a pot_96
-            cod_id = linha[115]
+        offset = 0  # Iniciar do começo
+        while offset < self.total_rows:
+            dados = self.consulta_banco(limit=limit, offset=offset)
 
-            # Verificar se o ctmt já foi processado
-            if ctmt not in ctmts_processados:
-                # Se o ctmt não foi processado ainda, criar uma nova pasta para o ctmt
-                ctmt_folder = os.path.join(base_dir, str(ctmt))
-                os.makedirs(ctmt_folder, exist_ok=True)
+            # Processar os dados recuperados
+            for linha in dados:
+                ene_values = linha[:12]  # ene_01 a ene_12
+                tip_cc = linha[12]
+                tip_dia = linha[14]
+                pac = linha[15]
+                ctmt = linha[16]
+                pot_values = linha[19:115]  # pot_01 a pot_96
+                cod_id = linha[115]
 
-            for ene_index, ene in enumerate(ene_values):
-                # Para cada ene, criar um arquivo específico
-                ene_filename = f"LoadShape_ene_{ene_index + 1}.txt"
-                file_path = os.path.join(ctmt_folder, ene_filename)
+                # Verificar se o ctmt já foi processado
+                if ctmt not in ctmts_processados:
+                    # Se o ctmt não foi processado ainda, criar uma nova pasta para o ctmt
+                    ctmt_folder = os.path.join(base_dir, str(ctmt))
+                    os.makedirs(ctmt_folder, exist_ok=True)
+                    ctmts_processados[ctmt] = ctmt_folder
 
-                # Abrir o arquivo específico para 'ene' (sempre sobreescrevendo)
-                with open(file_path, 'a') as file:
+                # Usar ThreadPoolExecutor para processar os arquivos de cada ene em paralelo
+                with ThreadPoolExecutor() as executor:
+                    futures = [
+                        executor.submit(self.criar_arquivo_para_ene, ene_index, ene_values, pot_values, tip_dia, cod_id, ctmts_processados[ctmt])
+                        for ene_index in range(len(ene_values))
+                    ]
+                    # Aguardar a conclusão de todas as tarefas
+                    for future in futures:
+                        future.result()
 
-                    # Fator de Ajuste para a curva de carga
-                    energia_curva_de_carga = sum(pot_values) * 0.25
-                    f = (int(ene_values[ene_index]) / 30) / energia_curva_de_carga
+            offset += limit  # Incrementa o offset para o próximo lote
 
-                    # Calcular potências ajustadas
-                    potencias_ajustadas = [f * pot for pot in pot_values]
-
-                    # Escrever no arquivo de acordo com o tipo de dia
-                    if tip_dia == 'DU':
-                        command_loadshapes = f"LoadShape_dia_util.{cod_id} = {', '.join(map(str, potencias_ajustadas))}\n"
-                    elif tip_dia == 'SA':
-                        command_loadshapes = f"LoadShape_sabado.{cod_id} = {', '.join(map(str, potencias_ajustadas))}\n"
-                    elif tip_dia == 'DO':
-                        command_loadshapes = f"LoadShape_domingos_e_feriados.{cod_id} = {', '.join(map(str, potencias_ajustadas))}\n"
-
-                    # Escrever o comando no arquivo, adicionando uma linha em branco entre as entradas
-                    file.write(command_loadshapes + "\n")  # Adiciona uma linha em branco entre as entradas
-
-        print("Arquivos gerados com sucesso.")
+        print(f"Processamento completo de {self.total_rows} registros.")
 
     def close(self):
         """Fecha a conexão com o banco de dados"""
@@ -145,11 +158,12 @@ if __name__ == "__main__":
     dbname = 'BDGD_2023_ENERGISA'
     user = 'iuri'
     password = 'aa11bb22'
+    total_rows = 5880738  # Número total de registros
 
     start_time = time.time()
 
-    # Criar uma instância da classe DatabaseQuery
-    db_query = DataBaseQuery(host, port, dbname, user, password)
+    # Criar uma instância da classe DataBaseQuery
+    db_query = DataBaseQuery(host, port, dbname, user, password, total_rows)
 
     # Conectar ao banco de dados
     db_query.connect()
