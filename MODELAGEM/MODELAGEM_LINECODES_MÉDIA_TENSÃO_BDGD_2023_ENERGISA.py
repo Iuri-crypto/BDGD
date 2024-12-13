@@ -55,12 +55,12 @@ class DatabaseQuery:
             print(f"Erro ao gerar comandos para o OpenDSS: {e}")
             return []
 
-    def lines(self):
+    def linecode_commands(self):
         """Cria comandos no formato desejado para o OpenDSS"""
         dados = self.consulta_banco()
 
         # Caminho principal para salvar as subpastas
-        base_dir = r'C:\modelagem_linecodes'
+        base_dir = r'C:\MODELAGEM_LINECODES_MEDIA_TENSAO_BDGD_2023_ENERGISA'
 
         # Dicionário para armazenar os ctmt já processados
         ctmts_processados = {}
@@ -97,35 +97,35 @@ class DatabaseQuery:
 
             # Gerar o comando para cada linha
             if len(fases_validades) == 3:
-                command_linecode = f"""
-               ! Linecode-ctmt: {ctmt}
-                New linecode.{tip_cnd} nphases=3 BaseFreq=60
-                ~r1={r1}
-                ~x1={x1}
-                ~c1={0}
-                ~Normamps = {cnom}
-                ~Emergamps = {cmax_renamed}
-                """
+                command_linecode = (
+               f'! Linecode-ctmt: {ctmt}\n'
+                f'New linecode.{tip_cnd} nphases=3 BaseFreq=60\n'
+                f'~r1={r1}\n'
+                f'~x1={x1}\n'
+                f'~c1={0}\n'
+                f'~Normamps = {cnom}\n'
+                f'~Emergamps = {cmax_renamed}\n')
+
             elif len(fases_validades) == 2:
-                command_linecode = f"""
-               ! Linecode-ctmt: {ctmt}
-                New linecode.{tip_cnd} nphases=2 BaseFreq=60
-                ~r1={r1}
-                ~x1={x1}
-                ~c1={0}
-                ~Normamps = {cnom}
-                ~Emergamps = {cmax_renamed}                
-                """
+                command_linecode = (
+               f'! Linecode-ctmt: {ctmt}\n'
+                f'New linecode.{tip_cnd} nphases=2 BaseFreq=60\n'
+                f'~r1={r1}\n'
+                f'~x1={x1}\n'
+                f'~c1={0}\n'
+                f'~Normamps = {cnom}\n'
+                f'~Emergamps = {cmax_renamed}\n' )
+
             elif len(fases_validades) == 1:
-                command_linecode = f"""
-                ! Linecode-ctmt: {ctmt}
-                New linecode.{tip_cnd} nphases=1 BaseFreq=60
-                ~r1={r1}
-                ~x1={x1}
-                ~c1={0}
-                ~Normamps = {cnom}
-                ~Emergamps = {cmax_renamed}
-                """
+                command_linecode = (
+                f'! Linecode-ctmt: {ctmt}\n'
+                f'New linecode.{tip_cnd} nphases=1 BaseFreq=60\n'
+                f'~r1={r1}\n'
+                f'~x1={x1}\n'
+                f'~c1={0}\n'
+                f'~Normamps = {cnom}\n'
+                f'~Emergamps = {cmax_renamed}\n')
+
             else:
                 continue  # Caso não seja nenhuma das opções, ignora e continua
             # Escrever o comando no arquivo.dss
@@ -160,7 +160,7 @@ if __name__ == "__main__":
     db_query.connect()
 
     # Gerar comandos para o OpenDSS
-    db_query.lines()
+    db_query.linecode_commands()
 
     # Fechar a conexão com o banco de dados
     db_query.close()

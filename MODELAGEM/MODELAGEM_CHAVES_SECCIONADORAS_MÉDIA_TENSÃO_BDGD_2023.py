@@ -47,7 +47,7 @@ class DatabaseQuery:
             print(f"Erro ao gerar comandos para o OpenDSS: {e}")
             return []
 
-    def lines(self):
+    def Seccionadoras_commands(self):
         """Cria comandos no formato desejado para o OpenDSS"""
         dados = self.consulta_banco()
 
@@ -120,7 +120,7 @@ if __name__ == "__main__":
     db_query.connect()
 
     # Gerar comandos para o OpenDSS
-    db_query.lines()
+    db_query.Seccionadoras_commands()
 
     # Fechar a conexão com o banco de dados
     db_query.close()

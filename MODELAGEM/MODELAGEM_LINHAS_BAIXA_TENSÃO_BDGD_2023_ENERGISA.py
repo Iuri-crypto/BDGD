@@ -34,16 +34,10 @@ class DatabaseQuery:
         try:
             query = """
                 SELECT 
-                        ssbmt.cod_id,
-                        ssbmt.pac_1,
-                        ssbmt.pac_2,
-                        ssbmt.ctmt,
-                        ssbmt.fas_con,
-                        ssbmt.comp,
-                        ssbmt.tip_cnd,
-                        ssbmt.wkb_geometry
+                    cod_id,pac_1,pac_2,ctmt,fas_con,comp,tip_cnd,wkb_geometry
+   
                 FROM 
-                    ssdmt
+                    ssdbt
             """
             # Executa a consulta
             self.cur.execute(query)
@@ -93,19 +87,18 @@ class DatabaseQuery:
                 'CBAN': '.1.2.3',
                 'ABN': '.1.2', 'ACN': '.1.3', 'BAN': '.1.2', 'CAN': '.1.3', 'A': '.1', 'B': '.2', 'C': '.3', 'AN': '.1',
                 'BA': '.1.2', 'BN': '.2', 'CN': '.3', 'AB': '.1.2', 'AC': '.1.3', 'BC': '.2.3',
-                'CNA': '.1', 'ANB': '.1.2', 'BNC': '.2.3', 'CA': '.1.3',
+                'CNA': '.1', 'ANB': '.1.2', 'BNC': '.2.3', 'CA': '.1.3', 'N':'.0', 'BCN':'.2.3.0'
             }
             rec_fases = mapa_fases[fas_con]
 
             fases = [fas for fas in fas_con if fas in ['A', 'B', 'C']]
 
             # Gerar o comando no formato desejado
-            command_line = f"""
-            !Plot_{wkb_geometry}  
-            ! Lines-ctmt: {ctmt}
-            New Line.{cod_id} Phases = {len(fases)} Bus_1 = {pac_1}{rec_fases} Bus_2 = {pac_2}{rec_fases} Linecode = {tip_cnd} Length = {comp} units = m
-            """
-
+            command_line = (
+            f'!Plot_{wkb_geometry}\n'
+            f'! Lines-ctmt: {ctmt}\n'
+            f'New Line.{cod_id} Phases = {len(fases)} Bus_1 = {pac_1}{rec_fases} Bus_2 = {pac_2}{rec_fases} Linecode = {tip_cnd} Length = {comp} units = m\n'
+)
             # Escrever o comando no arquivo .dss
             if file:
                 file.write(command_line)
