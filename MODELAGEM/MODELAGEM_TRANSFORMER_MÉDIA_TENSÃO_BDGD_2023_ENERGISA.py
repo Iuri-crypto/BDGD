@@ -117,7 +117,7 @@ class DataBaseQuery:
                 os.makedirs(ctmt_folder, exist_ok=True)
 
                 # Criar o novo arquivo .dss para este ctmt
-                file_path = os.path.join(ctmt_folder, 'TRANSFORMERS.dss')
+                file_path = os.path.join(ctmt_folder, 'Transformers.dss')
                 file = open(file_path, 'w')
 
                 # Adicionar o ctmt ao dicionario de ctmts processados (armazena o arquivo aberto)
@@ -130,44 +130,45 @@ class DataBaseQuery:
 
             mapa_fases_p =  {
                 'ABC': '.1.2.3', 'ACB': '.1.3.2', 'BAC': '.1.2.3', 'BCA': '.1.2.3', 'CAB': '.1.2.3', 'CBA': '.1.2.3',
-                'ABCN': '.1.2.3', 'ACBN': '.1.2.3', 'BACN': '.1.2.3', 'BCAN': '.1.2.3', 'CABN': '.1.2.3',
-                'CBAN': '.1.2.3',
-                'ABN': '.1.2', 'ACN': '.1.3', 'BAN': '.1.2', 'CAN': '.1.3', 'A': '.1', 'B': '.2', 'C': '.3', 'AN': '.1',
-                'BA': '.1.2', 'BN': '.2', 'CN': '.3', 'AB': '.1.2', 'AC': '.1.3', 'BC': '.2.3',
-                'CNA': '.1', 'ANB': '.1.2', 'BNC': '.2.3',  'CA': '.1.3',
+                    'ABCN': '.1.2.3', 'ACBN': '.1.2.3', 'BACN': '.1.2.3', 'BCAN': '.1.2.3', 'CABN': '.1.2.3',
+                    'CBAN': '.1.2.3',
+                    'ABN': '.1.2', 'ACN': '.1.3', 'BAN': '.1.2', 'CAN': '.1.3', 'A': '.1', 'B': '.2', 'C': '.3', 'AN': '.1',
+                    'BA': '.1.2', 'BN': '.2', 'CN': '.3', 'AB': '.1.2', 'AC': '.1.3', 'BC': '.2.3',
+                    'CNA': '.1', 'ANB': '.1.2', 'BNC': '.2.3', 'CA': '.1.3', 'N': '.0', 'BCN': '.2.3.0'
             }
             rec_fases_p = mapa_fases_p[lig_fas_p]
 
             mapa_fases_s =  {
                 'ABC': '.1.2.3', 'ACB': '.1.3.2', 'BAC': '.1.2.3', 'BCA': '.1.2.3', 'CAB': '.1.2.3', 'CBA': '.1.2.3',
-                'ABCN': '.1.2.3', 'ACBN': '.1.2.3', 'BACN': '.1.2.3', 'BCAN': '.1.2.3', 'CABN': '.1.2.3',
-                'CBAN': '.1.2.3',
-                'ABN': '.1.2', 'ACN': '.1.3', 'BAN': '.1.2', 'CAN': '.1.3', 'A': '.1', 'B': '.2', 'C': '.3', 'AN': '.1',
-                'BA': '.1.2', 'BN': '.2', 'CN': '.3', 'AB': '.1.2', 'AC': '.1.3', 'BC': '.2.3',
-                'CNA': '.1', 'ANB': '.1.2', 'BNC': '.2.3',  'CA': '.1.3',
+                    'ABCN': '.1.2.3', 'ACBN': '.1.2.3', 'BACN': '.1.2.3', 'BCAN': '.1.2.3', 'CABN': '.1.2.3',
+                    'CBAN': '.1.2.3',
+                    'ABN': '.1.2', 'ACN': '.1.3', 'BAN': '.1.2', 'CAN': '.1.3', 'A': '.1', 'B': '.2', 'C': '.3', 'AN': '.1',
+                    'BA': '.1.2', 'BN': '.2', 'CN': '.3', 'AB': '.1.2', 'AC': '.1.3', 'BC': '.2.3',
+                    'CNA': '.1', 'ANB': '.1.2', 'BNC': '.2.3', 'CA': '.1.3', 'N': '.0', 'BCN': '.2.3.0'
             }
             rec_fases_s = mapa_fases_s[lig_fas_s]
 
             conn_p = 'delta' if ligacao == 0 or 2 else 'estrela'
             conn_s = 'delta' if ligacao == 11 else 'estrela'
 
-            ten_primario = '{:.2f}'.format(ten_pri_voltage) if len(lig_fas_p) >= 2 else '{:.2f}'.format(
-                int(ten_pri_voltage) / math.sqrt(3))
-            ten_secundario = '{:.2f}'.format(ten_sec_voltage) if len(lig_fas_s) >= 2 else '{:.2f}'.format(
-                int(ten_sec_voltage) / math.sqrt(3))
+            ten_primario = round(ten_pri_voltage, 2) if len(lig_fas_p) >= 2 else round(
+                int(ten_pri_voltage) / math.sqrt(3), 2)
+            ten_secundario = round(ten_sec_voltage, 2) if len(lig_fas_s) >= 2 else round(
+                int(ten_sec_voltage) / math.sqrt(3), 2)
 
             # Gerar o comando para cada linha
             """ %r são as perdas no cobre 
                 %noloadloss são as perdas no ferro (histerese e correntes de facault)
                 %loadloss são as perdas totais do trafo (perdas no ferro + perdas no cobre) não usado porque ja definido o %r
             """
-            command_transformers = f"""
-            ! Transformer-ctmt: {ctmt}
-            New Transformer.{cod_id} Phases={len(lig_fas_p)} Windings=2 xhl={xhl} %noloadloss = {(perdas_ferro / perdas_total) * 100} 
-            ~ wdg=1 bus={pac_1}{rec_fases_p} conn={conn_p} kv={ten_primario} Kva={potencia_nominal} %r={r} 
-            ~ wdg=2 bus={pac_2}{rec_fases_s} conn={conn_s} kv={ten_secundario} Kva={potencia_nominal} %r={r}
-            """
 
+            command_transformers = (
+            f'! Transformer-ctmt: {ctmt}\n'
+            f'New Transformer.{cod_id} Phases={len(lig_fas_p)} Windings=2 xhl={xhl} %noloadloss = {(perdas_ferro / perdas_total) * 100}\n' 
+            f'~ wdg=1 bus={pac_1}{rec_fases_p} conn={conn_p} kv={ten_primario / 1000} Kva={potencia_nominal} %r={r} \n'
+            f'~ wdg=2 bus={pac_2}{rec_fases_s} conn={conn_s} kv={ten_secundario / 1000} Kva={potencia_nominal} %r={r}\n\n'
+
+            )
             if file:
                 file.write(command_transformers)
 
