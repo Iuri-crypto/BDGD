@@ -6,6 +6,7 @@ import numpy as np
 import os
 from pvlib import location
 
+
 class DatabaseQuery:
     def __init__(self, dbhost, dbport, dbdbname, dbuser, dbpassword):
         """Inicializa os parâmetros de conexão"""
@@ -38,17 +39,17 @@ class DatabaseQuery:
             # Consulta a tabela SSDMT para extrair as colunas especificadas
             query = """
                 SELECT 
-                        ugbt_tab.cod_id, ugbt_tab.pac, ugbt_tab.ctmt, ugbt_tab.fas_con,
-                        ugbt_tab.ten_con, ugbt_tab.pot_inst, ugbt_tab.cep,
-                        ugbt_tab.ceg_gd,
-                        ugbt_tab.ene_01, ugbt_tab.ene_02, ugbt_tab.ene_03,
-                        ugbt_tab.ene_04, ugbt_tab.ene_05, ugbt_tab.ene_06,
-                        ugbt_tab.ene_07, ugbt_tab.ene_08, ugbt_tab.ene_09,
-                        ugbt_tab.ene_10, ugbt_tab.ene_11, ugbt_tab.ene_12,
-                        ugbt_tab.dem_cont
+                        ugmt_tab.cod_id, ugmt_tab.pac, ugmt_tab.ctmt, ugmt_tab.fas_con,
+                        ugmt_tab.ten_con, ugmt_tab.pot_inst, ugmt_tab.cep,
+                        ugmt_tab.ceg_gd,
+                        ugmt_tab.ene_01, ugmt_tab.ene_02, ugmt_tab.ene_03,
+                        ugmt_tab.ene_04, ugmt_tab.ene_05, ugmt_tab.ene_06,
+                        ugmt_tab.ene_07, ugmt_tab.ene_08, ugmt_tab.ene_09,
+                        ugmt_tab.ene_10, ugmt_tab.ene_11, ugmt_tab.ene_12,
+                        ugmt_tab.dem_cont
 
                 FROM 
-                    ugbt_tab;       
+                    ugmt_tab;       
             """
             # Executa a consulta
             self.cur.execute(query)
@@ -63,7 +64,7 @@ class DatabaseQuery:
         dados = self.consulta_banco()
 
         # Caminho principal para salvar as subpastas
-        base_dir = r'C:\MODELAGEM_PAINEIS_FOTOVOLTAICOS_BAIXA_TENSÃO_BDGD_2023_ENERGISA'
+        base_dir = r'C:\MODELAGEM_PAINEIS_FOTOVOLTAICOS_MÉDIA_TENSÃO_BDGD_2023_ENERGISA'
 
         # Dicionário para armazenar os ctmt já processados
         ctmts_processados = {}
@@ -220,7 +221,7 @@ class DatabaseQuery:
                                 for pot_limitada, pot_ajustada in zip(potencia_gerada_limitada, potencia_gerada_ajustada)
                             ]
                             ten = 13.8 if ten_con == 49 else ten = 34.5 if ten_con == 72 else 13.8
-                      
+
                             command_pvsystem = f"""
                                 New xycurve.mypvst_{cod_id} npts = {96} xarray = {[temperatura]} yarray = {[eficiencia_inversor]} !curva de desempenho do painel em função da temperatura (colocar uma curva constante )
                                 New xycurve.myeff_{cod_id} npts = {96} xarray = {[potencia_pu]} yarray = {[eficiencia_inversor]}  ! eficiência do sistema para diferentes valores de carga
