@@ -74,7 +74,7 @@ class DataBaseQuery:
         dados = self.consulta_banco()
 
         # Caminho principal para salvar as subpastas
-        base_dir = r'C:\REGULADORES_MÉDIA_TENSÃO_BDGD_2023_ENERGISA'
+        base_dir = r'C:\MODELAGEM_REGULADORES_MÉDIA_TENSÃO_BDGD_2023_ENERGISA'
 
         # Dicionário para armazenar os ctmt já processados
         ctmts_processados = {}
@@ -105,7 +105,7 @@ class DataBaseQuery:
                 os.makedirs(ctmt_folder, exist_ok=True)
 
                 # Criar o novo arquivo .dss para este ctmt
-                file_path = os.path.join(ctmt_folder, 'REG_CONTROL.dss')
+                file_path = os.path.join(ctmt_folder, 'Reg_Control.dss')
                 file = open(file_path, 'w')
 
                 # Adicionar o ctmt ao dicionário de ctmts processados (armazena o arquivo aberto)
@@ -120,17 +120,17 @@ class DataBaseQuery:
                 'CBAN': '.1.2.3',
                 'ABN': '.1.2', 'ACN': '.1.3', 'BAN': '.1.2', 'CAN': '.1.3', 'A': '.1', 'B': '.2', 'C': '.3', 'AN': '.1',
                 'BA': '.1.2', 'BN': '.2', 'CN': '.3', 'AB': '.1.2', 'AC': '.1.3', 'BC': '.2.3',
-                'CNA': '.1', 'ANB': '.1.2', 'BNC': '.2.3', 'CA': '.1.3',
+                'CNA': '.1', 'ANB': '.1.2', 'BNC': '.2.3', 'CA': '.1.3', 'N': '.0', 'BCN': '.2.3.0'
             }
             rec_fases_p = mapa_fases_p[lig_fas_p]
 
             mapa_fases_s = {
                 'ABC': '.1.2.3', 'ACB': '.1.3.2', 'BAC': '.1.2.3', 'BCA': '.1.2.3', 'CAB': '.1.2.3', 'CBA': '.1.2.3',
-                'ABCN': '.1.2.3', 'ACBN': '.1.2.3', 'BACN': '.1.2.3', 'BCAN': '.1.2.3', 'CABN': '.1.2.3',
-                'CBAN': '.1.2.3',
-                'ABN': '.1.2', 'ACN': '.1.3', 'BAN': '.1.2', 'CAN': '.1.3', 'A': '.1', 'B': '.2', 'C': '.3', 'AN': '.1',
-                'BA': '.1.2', 'BN': '.2', 'CN': '.3', 'AB': '.1.2', 'AC': '.1.3', 'BC': '.2.3',
-                'CNA': '.1', 'ANB': '.1.2', 'BNC': '.2.3', 'CA': '.1.3',
+                    'ABCN': '.1.2.3', 'ACBN': '.1.2.3', 'BACN': '.1.2.3', 'BCAN': '.1.2.3', 'CABN': '.1.2.3',
+                    'CBAN': '.1.2.3',
+                    'ABN': '.1.2', 'ACN': '.1.3', 'BAN': '.1.2', 'CAN': '.1.3', 'A': '.1', 'B': '.2', 'C': '.3', 'AN': '.1',
+                    'BA': '.1.2', 'BN': '.2', 'CN': '.3', 'AB': '.1.2', 'AC': '.1.3', 'BC': '.2.3',
+                    'CNA': '.1', 'ANB': '.1.2', 'BNC': '.2.3', 'CA': '.1.3', 'N': '.0', 'BCN': '.2.3.0'
             }
             rec_fases_s = mapa_fases_s[lig_fas_s]
 

@@ -43,10 +43,9 @@ class DatabaseQuery:
     def fetch_data(self):
         """Busca os dados necessários no banco de dados."""
         query = """
-        SELECT 
-            cod_id, pac, ctmt, fas_con, ten_con, pot_inst, cep, ceg_gd
-        FROM 
-            ugmt_tab;
+                SELECT cod_id, pac, ctmt, fas_con, ten_con, pot_inst, cep, ceg_gd
+                FROM ugmt_tab 
+                WHERE ceg_gd NOT LIKE 'GD%' AND ceg_gd NOT LIKE 'UFV%';
         """
         return self.execute_query(query)
 
@@ -75,36 +74,36 @@ class DatabaseQuery:
         for linha in dados:
             cod_id, pac, ctmt, fas_con, ten_con, pot_inst, cep, ceg_gd = linha
 
-            if not ceg_gd.startswith(('GD', 'UFV')):
-                # Remove espaços extras ou caracteres inválidos de `ctmt`
-                ctmt = str(ctmt).strip()
 
-                if not ctmt:  # Ignorar se `ctmt` for vazio
-                    print(f"CTMT inválido encontrado para linha: {linha}")
-                    continue
+            # Remove espaços extras ou caracteres inválidos de `ctmt`
+            ctmt = str(ctmt).strip()
 
-                # Define o diretório e cria a pasta do CTMT
-                if ctmt not in ctmts_processados:
-                    ctmt_folder = os.path.join(base_dir, ctmt)
-                    os.makedirs(ctmt_folder, exist_ok=True)
-                    ctmts_processados[ctmt] = open(os.path.join(ctmt_folder, 'Generators.dss'), 'a')
+            if not ctmt:  # Ignorar se `ctmt` for vazio
+                print(f"CTMT inválido encontrado para linha: {linha}")
+                continue
 
-                # Define a tensão em função do código ten_con
-                ten = 13.8 if ten_con == 49 else 34.5 if ten_con == 72 else None
+            # Define o diretório e cria a pasta do CTMT
+            if ctmt not in ctmts_processados:
+                ctmt_folder = os.path.join(base_dir, ctmt)
+                os.makedirs(ctmt_folder, exist_ok=True)
+                ctmts_processados[ctmt] = open(os.path.join(ctmt_folder, 'Generators.dss'), 'a')
 
-                # Recupera o formato das fases
-                rec_fases = mapa_fases.get(fas_con, '.1.2.3')
+            # Define a tensão em função do código ten_con
+            ten = 13.8 if ten_con == '49' else 34.5 if ten_con == '72' else 13.8
 
-                # Gera o comando do gerador
-                command = (
-                    f"! CTMT - {ctmt}\n"
-                    f"New Generator.{cod_id} Bus1={pac}{rec_fases} KW={pot_inst} Model=1 PF=1 "
-                    f"KVA={pot_inst} KV={ten} Xdp=0.27 xdpp=0.20 H=2\n"
-                    f"~ Conn=Delta\n"
-                )
+            # Recupera o formato das fases
+            rec_fases = mapa_fases.get(fas_con, '.1.2.3')
 
-                # Escreve no arquivo correspondente
-                ctmts_processados[ctmt].write(command + '\n')
+            # Gera o comando do gerador
+            command = (
+                f"! CTMT - {ctmt}\n"
+                f"New Generator.{cod_id} Bus1={pac}{rec_fases} KW={pot_inst} Model=1 PF=1 "
+                f"KVA={pot_inst} KV={ten} Xdp=0.27 xdpp=0.20 H=2\n"
+                f"~ Conn=Delta\n"
+            )
+
+            # Escreve no arquivo correspondente
+            ctmts_processados[ctmt].write(command + '\n')
 
         # Fecha todos os arquivos abertos
         for file in ctmts_processados.values():
