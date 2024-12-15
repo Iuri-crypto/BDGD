@@ -40,8 +40,8 @@ class DatabaseQuery:
                         ramlig.ctmt,
                         ramlig.fas_con,
                         ramlig.comp,
-                        ramlig.tip_cnd,
-                        --ramlig.wkb_geometry
+                        ramlig.tip_cnd
+                        
                 FROM 
                     ramlig
             """
@@ -58,7 +58,7 @@ class DatabaseQuery:
         dados = self.consulta_banco()
 
         # Caminho principal para salvar as subpastas
-        base_dir = r'C:\MODELAGEM_RAMAIS_BDGD_2023_ENERGISA'
+        base_dir = r'C:\MODELAGEM_RAMAIS_BAIXA_TENSAO_BDGD_2023_ENERGISA'
 
         # Dicionario para armazenar os ctmts já processados
         ctmts_processados = {}
@@ -77,7 +77,7 @@ class DatabaseQuery:
             if ctmt not in ctmts_processados:
                 ctmt_folder = os.path.join(base_dir, str(ctmt))
                 os.makedirs(ctmt_folder, exist_ok=True)
-                file_path = os.path.join(ctmt_folder, 'ramais.dss')
+                file_path = os.path.join(ctmt_folder, 'Ramais.dss')
                 file = open(file_path, 'w')
                 ctmts_processados[ctmt] = file
             else:
@@ -91,17 +91,17 @@ class DatabaseQuery:
                 'CBAN': '.1.2.3',
                 'ABN': '.1.2', 'ACN': '.1.3', 'BAN': '.1.2', 'CAN': '.1.3', 'A': '.1', 'B': '.2', 'C': '.3', 'AN': '.1',
                 'BA': '.1.2', 'BN': '.2', 'CN': '.3', 'AB': '.1.2', 'AC': '.1.3', 'BC': '.2.3',
-                'CNA': '.1', 'ANB': '.1.2', 'BNC': '.2.3', 'CA': '.1.3',
+                'CNA': '.1', 'ANB': '.1.2', 'BNC': '.2.3', 'CA': '.1.3', 'N': '.0', 'BCN': '.2.3.0'
             }
             rec_fases = mapa_fases[fas_con]
 
             fases = [fas for fas in fas_con if fas in ['A', 'B', 'C']]
 
             # Gerar o comando no formato desejado
-            command_line = f""" 
-            ! Lines-ctmt: {ctmt}
-            New Line.{cod_id} Phases = {len(fases)} Bus_1 = {pac_1}{rec_fases} Bus_2 = {pac_2}{rec_fases} Linecode = {tip_cnd} Length = {comp} units = m
-            """
+            command_line = (
+            f'! Lines-ctmt: {ctmt}\n'
+            f'New Line.{cod_id} Phases = {len(fases)} Bus_1 = {pac_1}{rec_fases} Bus_2 = {pac_2}{rec_fases} Linecode = {tip_cnd} Length = {comp} units = m\n\n'
+            )
 
             # Escrever o comando no arquivo .dss
             if file:

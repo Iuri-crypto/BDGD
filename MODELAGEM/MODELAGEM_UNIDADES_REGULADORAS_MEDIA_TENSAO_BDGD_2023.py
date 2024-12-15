@@ -33,7 +33,7 @@ class DataBaseQuery:
         """Consulta o banco de dados e coleta os dados"""
         try:
             query = """
-                  SELECT 
+                 SELECT 
                     u.cod_id, 
                     u.fas_con, 
                     u.pac_1, 
@@ -53,13 +53,13 @@ class DataBaseQuery:
             FROM 
                 unremt u
             JOIN 
-                eqre e ON u.cod_id = e.un_re  -- Comparando cod_id da unsemt com un_re da eqre
+                eqre e ON u.cod_id = e.un_re  
             LEFT JOIN 
-                ctmt c ON u.ctmt = c.cod_id   -- Comparando ctmt da unsemt com cod_id da ctmt
+                ctmt c ON u.ctmt = c.cod_id   
             WHERE 
                 u.ctmt IS NOT NULL
             ORDER BY 
-                u.cod_id;
+                u.cod_id; 
             """
             # Executa a consulta
             self.cur.execute(query)
@@ -137,7 +137,7 @@ class DataBaseQuery:
             # Gerar o comando para cada linha
             command_transformers = f"""
             ! Regulador-ctmt: {ctmt}
-            new transformer.reg{lig_fas_p}_{cod_id} phases={len(lig_fas_p)} windings=2 bank={cod_id} buses=({pac_1}{rec_fases_p} {pac_2}{rec_fases_s}) conns='Delta Delta' kvs="{ten_nominal_voltage} {ten_nominal_voltage}" kvas="{pot_nom} {pot_nom}" XHL = {xhl}
+            new transformer.reg{lig_fas_p}_{cod_id} phases={len(lig_fas_p)} windings=2 bank={cod_id} buses=({pac_1}{rec_fases_p} {pac_2}{rec_fases_s}) conns='Delta Delta' kvs="{ten_nominal_voltage / 1000} {ten_nominal_voltage / 1000}" kvas="{pot_nom} {pot_nom}" XHL = {xhl}
             new regcontrol.creg{lig_fas_p}_{cod_id} transformer=reg{lig_fas_p}_{cod_id} winding=2 vreg={int(ten_nominal_voltage) / int(rel_tp)} band={cod_id} ptratio={rel_tp} ctprim={cor_nom} 
             """
 
