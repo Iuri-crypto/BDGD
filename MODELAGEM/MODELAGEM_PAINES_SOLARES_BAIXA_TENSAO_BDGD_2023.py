@@ -1,7 +1,5 @@
 import psycopg2
-import matplotlib.pyplot as plt
 import pandas as pd
-import pvlib
 import numpy as np
 import os
 from pvlib import location
@@ -63,7 +61,7 @@ class DatabaseQuery:
         dados = self.consulta_banco()
 
         # Caminho principal para salvar as subpastas
-        base_dir = r'C:\MODELAGEM_PAINEIS_FOTOVOLTAICOS_BAIXA_TENSÃO_BDGD_2023_ENERGISA'
+        base_dir = r'C:\MODELAGEMs_PAINEIS_FOTOVOLTAICOS_BAIXA_TENSÃO_BDGD_2023_ENERGISA'
 
         # Dicionário para armazenar os ctmt já processados
         ctmts_processados = {}
@@ -92,7 +90,7 @@ class DatabaseQuery:
                     mensal_folder = os.path.join(ctmt_folder, str(f'geração_shape_mes_{index_mensal + 1}'))
                     os.makedirs(mensal_folder, exist_ok=True)
 
-                    for index_dia in range(30):
+                    for index_dia in range(1):
                         diario_filename = f'geração_shape_dia_{index_dia + 1}.txt'
                         file_path = os.path.join(mensal_folder, diario_filename)
 
@@ -202,7 +200,7 @@ class DatabaseQuery:
 
                             """ Cálculo da eficiência em função da temperatura para os inversores solares """
                             gamma = -0.004                                   # Coeficiente de temperatura do painel (em %/°C)
-                            alpha = 0.002                                    # Coeficiente de variação da eficiência do inversor em (em %/°C)
+                            alpha = 0.001                                    # Coeficiente de variação da eficiência do inversor em (em %/°C)
                             eficiencia_maxima_inversor = 0.98
                             temperatura_referencia = [25 for _ in range(96)]
                             potencia_corrigida = [p_g_l * (1 + gamma * (t - t_r))
@@ -219,17 +217,73 @@ class DatabaseQuery:
                                 pot_limitada / pot_ajustada if pot_ajustada != 0 else 0
                                 for pot_limitada, pot_ajustada in zip(potencia_gerada_limitada, potencia_gerada_ajustada)
                             ]
-                            ten = 13.8 if ten_con == 49 else ten = 34.5 if ten_con == 72 else 13.8
-                      
-                            command_pvsystem = f"""
-                                New xycurve.mypvst_{cod_id} npts = {96} xarray = {[temperatura]} yarray = {[eficiencia_inversor]} !curva de desempenho do painel em função da temperatura (colocar uma curva constante )
-                                New xycurve.myeff_{cod_id} npts = {96} xarray = {[potencia_pu]} yarray = {[eficiencia_inversor]}  ! eficiência do sistema para diferentes valores de carga
-                                New loadshape.myirrad_{cod_id} npts = {96} interval = 15min mult = {[irradiance]} ! distribui os valores da irradição solar ao longo das 24 horas do dia e noite
-                                New tshape.mytemp_{cod_id} npts = {96} interval = 15min temp = {[temperatura]}  ! define a temperatura ambiente ao longo das 24 horas
-                                New pvsystem.pv_{cod_id} phases = {len(fas_con)} conn = estrela bus1 = {pac} kv = {ten} kva = {max(potencia_gerada_ajustada)} pmpp = {max(potencia_gerada_ajustada)} pf = {1} %cutin = {0.00005} %cutout = {0.00005} varfollowinverter = Yes effcurve = myeff_{cod_id} p-tcurve = mypvst_{cod_id} daily = myirrad_{cod_id} tdaily = mytemp_{cod_id}
-                                """
 
-                            file.write(command_pvsystem + "\n")
+                            # Função de cálculo da eficiência do inversor com base na potência gerada
+                            def calcular_eficiencia(potencia_gerada, potencia_gerada_limitada):
+                                """
+                                Calcula a eficiência do inversor baseada na potência gerada.
+                                A eficiência depende de faixas de potência:
+                                - < 0.2: 0.85
+                                - 0.2 a 0.6: 0.9
+                                - 0.6 a 1: 0.98
+                                Para valores intermediários, a interpolação é usada para suavizar as transições.
+                                """
+                                # Normaliza a potência gerada em relação à potência máxima
+                                if max(potencia_gerada_limitada) != 0:
+                                    fator_potencia = potencia_gerada / max(potencia_gerada_limitada)
+                                else:
+                                    fator_potencia = 0
+
+                                # Definindo as faixas de potência
+                                if fator_potencia < 0.2:
+                                    eficiencia = 0.85
+                                elif 0.2 <= fator_potencia < 0.6:
+                                    # Interpolação linear entre 0.2 e 0.6 para transição suave
+                                    eficiencia = 0.85 + (fator_potencia - 0.2) * (0.9 - 0.85) / (0.6 - 0.2)
+                                elif 0.6 <= fator_potencia < 1.0:
+                                    # Interpolação linear entre 0.6 e 1 para transição suave
+                                    eficiencia = 0.9 + (fator_potencia - 0.6) * (0.98 - 0.9) / (1.0 - 0.6)
+                                else:
+                                    eficiencia = 0.98
+
+                                return eficiencia
+
+
+                            potencia_gerada_limitada_np = np.array(potencia_gerada_limitada)
+
+                            eficiencia_inversor_pot = []
+                            for pot in potencia_gerada_limitada_np:
+
+                                eficiencia_base = calcular_eficiencia(pot, potencia_gerada_limitada)
+
+                                eficiencia_completa = eficiencia_base
+
+                                eficiencia_inversor_pot.append(eficiencia_completa)
+
+
+
+                            ten = 13.8 if ten_con == 49 else (34.5 if ten_con == 72 else 13.8)
+
+                            irradiance = [irr / max(irradiance) for irr in irradiance]
+
+                            temperatura = " ".join(str(temp) for temp in temperatura)
+                            eficiencia_inversor = " ".join(str(efi) for efi in eficiencia_inversor)
+                            potencia_pu = " ".join(str(pot) for pot in potencia_pu)
+                            irradiance = " ".join(str(irr) for irr in irradiance)
+
+                      
+                            command_pvsystem = (
+                                f'New xycurve.mypvst_{cod_id} npts = {96} xarray = [{temperatura}] yarray = [{eficiencia_inversor}]\n '
+                                f'New xycurve.myeff_{cod_id} npts = {96} xarray = [{potencia_pu}] yarray = [{eficiencia_inversor_pot}]\n  '
+                                f'New loadshape.myirrad_{cod_id} npts = {96} interval = 15 mult = [{irradiance}]\n '
+                                f'New tshape.mytemp_{cod_id} npts = {96} interval = 15 temp = [{temperatura}]\n  '
+                                f'New pvsystem.pv_{cod_id} phases = {len(fas_con)} conn = wye bus1 = {pac}\n '
+                                f'~ kv = {ten} kva = {max(potencia_gerada_ajustada)} pmpp = {max(potencia_gerada_ajustada)}\n '
+                                f'~ pf = {1} %cutin = {0.00005} %cutout = {0.00005} varfollowinverter = Yes effcurve = myeff_{cod_id}\n '
+                                f'~ p-tcurve = mypvst_{cod_id} daily = myirrad_{cod_id} tdaily = mytemp_{cod_id}'
+
+                            )
+                            file.write(command_pvsystem + "\n\n")
 
     def close(self):
         """Fecha a conexão com o banco de dados"""
