@@ -61,7 +61,7 @@ class DatabaseQuery:
         dados = self.consulta_banco()
 
         # Caminho principal para salvar as subpastas
-        base_dir = r'C:\MODELAGEMs_PAINEIS_FOTOVOLTAICOS_BAIXA_TENSÃO_BDGD_2023_ENERGISA'
+        base_dir = r'C:\MODELAGEM_PAINEIS_FOTOVOLTAICOS_BAIXA_TENSÃO_BDGD_2023_ENERGISA'
 
         # Dicionário para armazenar os ctmt já processados
         ctmts_processados = {}
