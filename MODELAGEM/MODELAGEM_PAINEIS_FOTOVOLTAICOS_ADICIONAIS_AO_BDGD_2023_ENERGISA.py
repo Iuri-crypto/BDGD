@@ -4,6 +4,7 @@ import numpy as np
 import os
 from pvlib import location
 
+
 class DatabaseQuery:
     def __init__(self, dbhost, dbport, dbdbname, dbuser, dbpassword):
         """Inicializa os parâmetros de conexão"""
@@ -125,7 +126,8 @@ class DatabaseQuery:
                                 """
                                 t_max = 40
                                 t_min = 15
-                                temperatura = (t_max + t_min) / 2 + (t_max - t_min) / 2 * np.sin(np.pi * (hora - 6) / 12)
+                                temperatura = (t_max + t_min) / 2 + (t_max - t_min) / 2 * np.sin(
+                                    np.pi * (hora - 6) / 12)
                                 return temperatura
 
                             def calcular_irradianca_temperatura_desempenho(latitude, longitude, altitude,
@@ -158,7 +160,8 @@ class DatabaseQuery:
                                 index_3 = f'{int(rec_mensal):02d}' if rec_mensal > 0 else '01'  # Garante que o mês não seja 0
                                 index_4 = f'{int(rec_diario):02d}' if rec_diario > 0 else '01'  # Garante que o dia não seja 0
 
-                                times = pd.date_range(f'2023-{index_3}-{index_4}', f'2023-{index_3}-{index_4} 23:59', freq='15min', tz='America/Cuiaba')
+                                times = pd.date_range(f'2023-{index_3}-{index_4}', f'2023-{index_3}-{index_4} 23:59',
+                                                      freq='15min', tz='America/Cuiaba')
 
                                 """Calcular a irradiança global horizontal (GHI), difusa (DHI) e direta (DNI)"""
                                 solar_position = site.get_solarposition(times)
@@ -182,8 +185,8 @@ class DatabaseQuery:
                                 potencia_gerada_limitada = aplicar_saturacao_inversor(potencia_gerada_ajustada,
                                                                                       potencia_max_inversor_kw)
 
-                                return irradiance['ghi'].tolist(), temperatura, potencia_gerada_ajustada.tolist(), potencia_gerada_limitada.tolist()
-
+                                return irradiance[
+                                    'ghi'].tolist(), temperatura, potencia_gerada_ajustada.tolist(), potencia_gerada_limitada.tolist()
 
                             """ As coordenadas foram baseadas em Cuiaba para os calculos"""
                             latitude = -15.59583
@@ -192,30 +195,31 @@ class DatabaseQuery:
                             """ Eficiencia media de uma painel fotovoltaico """
                             eficiencia = 0.18
 
-                            irradiance, temperatura, potencia_gerada_ajustada, potencia_gerada_limitada  = calcular_irradianca_temperatura_desempenho(
+                            irradiance, temperatura, potencia_gerada_ajustada, potencia_gerada_limitada = calcular_irradianca_temperatura_desempenho(
                                 latitude,
                                 longitude, altitude,
                                 potencia_instalada_kwp, eficiencia,
                                 potencia_max_inversor_kw, energia_desejada)
 
                             """ Cálculo da eficiência em função da temperatura para os inversores solares """
-                            gamma = -0.004                                   # Coeficiente de temperatura do painel (em %/°C)
-                            alpha = 0.001                                    # Coeficiente de variação da eficiência do inversor em (em %/°C)
+                            gamma = -0.004  # Coeficiente de temperatura do painel (em %/°C)
+                            alpha = 0.001  # Coeficiente de variação da eficiência do inversor em (em %/°C)
                             eficiencia_maxima_inversor = 0.98
                             temperatura_referencia = [25 for _ in range(96)]
                             potencia_corrigida = [p_g_l * (1 + gamma * (t - t_r))
-                                                  for t, t_r, p_g_l in zip(temperatura, temperatura_referencia, potencia_gerada_limitada)]
+                                                  for t, t_r, p_g_l in
+                                                  zip(temperatura, temperatura_referencia, potencia_gerada_limitada)]
 
                             """ Calculando a eficiencia do inversor em função da temperatura """
                             eficiencia_inversor = [eficiencia_maxima_inversor - alpha * (t - t_r)
                                                    for t, t_r in zip(temperatura, temperatura_referencia)]
 
-
                             """ """
 
                             potencia_pu = [
                                 pot_limitada / pot_ajustada if pot_ajustada != 0 else 0
-                                for pot_limitada, pot_ajustada in zip(potencia_gerada_limitada, potencia_gerada_ajustada)
+                                for pot_limitada, pot_ajustada in
+                                zip(potencia_gerada_limitada, potencia_gerada_ajustada)
                             ]
 
                             # Função de cálculo da eficiência do inversor com base na potência gerada
@@ -248,19 +252,15 @@ class DatabaseQuery:
 
                                 return eficiencia
 
-
                             potencia_gerada_limitada_np = np.array(potencia_gerada_limitada)
 
                             eficiencia_inversor_pot = []
                             for pot in potencia_gerada_limitada_np:
-
                                 eficiencia_base = calcular_eficiencia(pot, potencia_gerada_limitada)
 
                                 eficiencia_completa = eficiencia_base
 
                                 eficiencia_inversor_pot.append(eficiencia_completa)
-
-
 
                             ten = 13.8 if ten_con == 49 else (34.5 if ten_con == 72 else 13.8)
 
@@ -289,7 +289,6 @@ class DatabaseQuery:
                             pote = potencia_pu
                             irr = irradiance
 
-                      
                             command_pvsystem = (
                                 f'New xycurve.mypvst_{cod_id} npts = {1} xarray = [{25}] yarray = [{1}]\n '
                                 f'New xycurve.myeff_{cod_id} npts = {1} xarray = [{1}] yarray = [{1}]\n  '
