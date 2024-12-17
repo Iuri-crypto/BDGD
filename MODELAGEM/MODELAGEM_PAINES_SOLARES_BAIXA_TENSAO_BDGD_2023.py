@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import os
 from pvlib import location
+import matplotlib.pyplot as plt
 
 class DatabaseQuery:
     def __init__(self, dbhost, dbport, dbdbname, dbuser, dbpassword):
@@ -158,7 +159,7 @@ class DatabaseQuery:
                                 index_3 = f'{int(rec_mensal):02d}' if rec_mensal > 0 else '01'  # Garante que o mês não seja 0
                                 index_4 = f'{int(rec_diario):02d}' if rec_diario > 0 else '01'  # Garante que o dia não seja 0
 
-                                times = pd.date_range(f'2023-{index_3}-{index_4}', f'2023-{index_3}-{index_4} 23:59', freq='15min', tz='America/Cuiaba')
+                                times = pd.date_range(f'2023-{index_3}-{index_4}', f'2023-{index_3}-{index_4} 23:59', freq='60min', tz='America/Cuiaba')
 
                                 """Calcular a irradiança global horizontal (GHI), difusa (DHI) e direta (DNI)"""
                                 solar_position = site.get_solarposition(times)
@@ -198,6 +199,9 @@ class DatabaseQuery:
                                 potencia_instalada_kwp, eficiencia,
                                 potencia_max_inversor_kw, energia_desejada)
 
+                            irradiance = [irra / max(irradiance) for irra in irradiance]
+
+
 
 
                             ten = 13.8 if ten_con == 49 else (34.5 if ten_con == 72 else 13.8)
@@ -217,10 +221,10 @@ class DatabaseQuery:
 
 
                             command_pvsystem = (
-                                f'New xycurve.mypvst_{cod_id} npts = {1} xarray = [{25}] yarray = [{1}]\n '
-                                f'New xycurve.myeff_{cod_id} npts = {1} xarray = [{1}] yarray = [{1}]\n  '
-                                f'New loadshape.myirrad_{cod_id} npts = {1} interval = 15 mult = [{1}]\n '
-                                f'New tshape.mytemp_{cod_id} npts = {1} interval = 15 temp = [{25}]\n  '
+                                f'New xycurve.mypvst_{cod_id} npts = 4 xarray=[0 25 75 100] yarray=[1.2 1.0 0.8 0.6]\n '
+                                f'New xycurve.myeff_{cod_id} npts = 4  xarray=[.1 .2 .4 1.0] yarray=[.86 .9 .93 .97]\n  '
+                                f'New loadshape.myirrad_{cod_id} npts = 1 interval = 1 mult = [1]\n '
+                                f'New tshape.mytemp_{cod_id} npts = 1 interval = 1 temp = [25]\n  '
                                 f'New pvsystem.pv_{cod_id} phases = {len(fas_con)} conn = wye bus1 = {pac}{rec_fases}\n '
                                 f'~ kv = {ten} kva = {max(potencia_gerada_ajustada)} pmpp = {max(potencia_gerada_ajustada)}\n '
                                 f'~ pf = {1} %cutin = {0.00005} %cutout = {0.00005} varfollowinverter = Yes effcurve = myeff_{cod_id}\n '

@@ -5,6 +5,7 @@ import pvlib
 import numpy as np
 import os
 from pvlib import location
+import json
 
 
 class DatabaseQuery:
@@ -93,11 +94,11 @@ class DatabaseQuery:
                     mensal_folder = os.path.join(ctmt_folder, str(f'geração_shape_mes_{index_mensal + 1}'))
                     os.makedirs(mensal_folder, exist_ok=True)
 
-                    for index_dia in range(30):
-                        diario_filename = f'geração_shape_dia_{index_dia + 1}.txt'
+                    for index_dia in range(1):
+                        diario_filename = f'dados_pvsystem_{cod_id}.json'
                         file_path = os.path.join(mensal_folder, diario_filename)
 
-                        with open(file_path, 'a') as file:
+                        with open(file_path, 'w') as file:
                             """
                                   IMPLEMENTAÇÃO DE TODAS AS CURVAS PARA PAINEIS SOLARES
                               """
@@ -112,24 +113,7 @@ class DatabaseQuery:
                                 potencia = potencia_instalada_kwp * (irradiancia / 1000) * eficiencia
                                 return potencia
 
-                            def aplicar_saturacao_inversor(potencia_gerada, potencia_max_inversor_kw):
-                                """
-                                :param potencia_gerada: diferência entre a quantidade de potência que entra - perdas, saturações...
-                                :param potencia_max_inversor_kw: maior quantidade de potência que o inversor consegue injetar nna rede
-                                :return:
-                                """
-                                return np.minimum(potencia_gerada, potencia_max_inversor_kw)
 
-                            def estimar_temperatura(hora, latitude):
-                                """
-                                :param hora: hora do dia de simulação do respectivo ano escolhido
-                                :param latitude:  a temperatura varia com a latitude (distancia até a linha do Equador)
-                                :return:
-                                """
-                                t_max = 40
-                                t_min = 15
-                                temperatura = (t_max + t_min) / 2 + (t_max - t_min) / 2 * np.sin(np.pi * (hora - 6) / 12)
-                                return temperatura
 
                             def calcular_irradianca_temperatura_desempenho(latitude, longitude, altitude,
                                                                            potencia_instalada_kwp, eficiencia,
@@ -167,8 +151,6 @@ class DatabaseQuery:
                                 solar_position = site.get_solarposition(times)
                                 irradiance = site.get_clearsky(times)
 
-                                """ Estimar a temperatura para cada 15 minutos"""
-                                temperatura = [estimar_temperatura(minutos.hour, latitude) for minutos in times]
 
                                 """Calcular a potência gerada com base na irradiância (GHI)"""
                                 potencia_gerada = calcular_potencia_gerada(irradiance['ghi'], potencia_instalada_kwp,
@@ -181,9 +163,8 @@ class DatabaseQuery:
                                 """Ajustar a potência gerada para atingir a energia desejada"""
                                 potencia_gerada_ajustada = potencia_gerada * fator_ajuste
 
-                                return potencia_gerada_ajustada.tolist()
+                                return  potencia_gerada_ajustada.tolist()
 
-                            """ As coordenadas foram baseadas em Cuiaba para os calculos"""
                             latitude = -15.59583
                             longitude = -56.09694
                             altitude = 400
@@ -194,14 +175,37 @@ class DatabaseQuery:
                                 latitude,
                                 longitude, altitude,
                                 potencia_instalada_kwp, eficiencia,
-                                potencia_max_inversor_kw, energia_desejada)
+                                potencia_max_inversor_kw, energia_desejada
+                            )
 
+                            ten = 13.8 if ten_con == 49 else (34.5 if ten_con == 72 else 13.8)
 
-                            command_pvsystem = f"""
-                                Curva.pv_{cod_id} Pot_ger_15min = [{potencia_gerada_ajustada}]
-                                """
+                            mapa_fases = {
+                                'ABC': '.1.2.3', 'ACB': '.1.3.2', 'BAC': '.1.2.3', 'BCA': '.1.2.3', 'CAB': '.1.2.3',
+                                'CBA': '.1.2.3',
+                                'ABCN': '.1.2.3', 'ACBN': '.1.2.3', 'BACN': '.1.2.3', 'BCAN': '.1.2.3',
+                                'CABN': '.1.2.3',
+                                'CBAN': '.1.2.3',
+                                'ABN': '.1.2', 'ACN': '.1.3', 'BAN': '.1.2', 'CAN': '.1.3', 'A': '.1', 'B': '.2',
+                                'C': '.3', 'AN': '.1',
+                                'BA': '.1.2', 'BN': '.2', 'CN': '.3', 'AB': '.1.2', 'AC': '.1.3', 'BC': '.2.3',
+                                'CNA': '.1', 'ANB': '.1.2', 'BNC': '.2.3', 'CA': '.1.3', 'N': '.0', 'BCN': '.2.3.0'
+                            }
+                            rec_fases = mapa_fases[fas_con]
 
-                            file.write(command_pvsystem + "\n")
+                            fp = 1
+
+                            command_pvsystem = {
+                                "cod_id": cod_id,
+                                "fas_con": fas_con,
+                                "bus1": pac + rec_fases,
+                                "kv": ten,
+                                "kva": max(potencia_gerada_ajustada),
+                                "pmpp": max(potencia_gerada_ajustada),
+                                "pf": fp
+                            }
+
+                            json.dump(command_pvsystem, file, indent=4)
 
     def close(self):
         """Fecha a conexão com o banco de dados"""
