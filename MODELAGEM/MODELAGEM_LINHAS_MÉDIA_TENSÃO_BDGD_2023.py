@@ -195,7 +195,7 @@ class DatabaseQuery:
                 New LineGeometry.{cod_id}_Geometry nconds = {len(fas_con)} nphases = {len(fases_presentes)}
                 {configuracao}
 
-                New Line.{cod_id} Bus1 = {pac_1} Bus_2 = {pac_2} 
+                New Line.{cod_id} Bus1 = {pac_1} Bus2 = {pac_2} 
                 ~ Geometry = {cod_id}_Geometry
                 ~ Lenght = {comp} units = m
                 ~ EmergAmps = {cmax_renamed}

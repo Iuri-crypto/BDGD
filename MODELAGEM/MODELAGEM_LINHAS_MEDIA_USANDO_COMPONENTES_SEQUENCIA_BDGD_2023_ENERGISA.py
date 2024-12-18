@@ -52,7 +52,7 @@ class DatabaseQuery:
         dados = self.consulta_banco()
 
         # Caminho principal para salvar as subpastas
-        base_dir = r'C:\MODELAGEM_LINHAS_MÉDIA_TENSÃO_BDGD_2023_ENERGISA_tradicional'
+        base_dir = r'C:\MODELAGEM_LINHAS_MEDIA_TENSAO_USANDO_COMPONENTES_SEQUENCIA_BDGD_2023_ENERGISA_'
 
         # Dicionario para armazenar os ctmts já processados
         ctmts_processados = {}
@@ -97,7 +97,7 @@ class DatabaseQuery:
             command_line = (
             f'!Plot_{wkb_geometry}\n' 
             f'! Lines-ctmt: {ctmt}\n'
-            f'New Line.{cod_id} Phases = {len(fases)} Bus_1 = {pac_1}{rec_fases} Bus_2 = {pac_2}{rec_fases} Linecode = {tip_cnd} Length = {comp} units = m\n'
+            f'New Line.{cod_id} Phases = {len(fases)} Bus1 = {pac_1}{rec_fases} Bus2 = {pac_2}{rec_fases} Linecode = {tip_cnd} Length = {comp} units = m\n'
             )
 
             # Escrever o comando no arquivo .dss

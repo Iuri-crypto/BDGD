@@ -35,8 +35,7 @@ class DatabaseQuery:
             # Consulta a tabela SSDMT para extrair as colunas especificadas
             query = """
                 SELECT 
-                        pac_1, pac_2, cod_id, ctmt
- 
+                    pac_1,pac_2,cod_id,ctmt, cor_nom, fas_con
                 FROM 
                      unsebt;       
             """
@@ -53,7 +52,7 @@ class DatabaseQuery:
         dados = self.consulta_banco()
 
         # Caminho principal para salvar as subpastas
-        base_dir = r'C:\MODELAGEM_CHAVES_SECCIONADORAS_BAIXA_TENSÃO_BDGD_2023_ENERGISA'
+        base_dir = r'C:\MODELAGEM_CHAVES_SECCIONADORAS_BAIXA_TENSAO_BDGD_2023_ENERGISA'
 
         # Dicionário para armazenar os ctmt já processados
         ctmts_processados = {}
@@ -64,6 +63,9 @@ class DatabaseQuery:
             pac_2 = linha[1]
             cod_id = linha[2]
             ctmt = linha[3]
+            cor_nom = linha[4]
+            fas_con = linha[5]
+
 
             # Verificar se o ctmt já foi processado
             if ctmt not in ctmts_processados:
@@ -72,7 +74,7 @@ class DatabaseQuery:
                 os.makedirs(ctmt_folder, exist_ok=True)
 
                 # Criar o novo arquivo .dss para este ctmt
-                file_path = os.path.join(ctmt_folder, 'CHAVES_SECCIONADORAS.dss')
+                file_path = os.path.join(ctmt_folder, 'chaves_seccionadoras.dss')
                 file = open(file_path, 'w')
 
                 # Adicionar o ctmt ao dicionário de ctmts processados (armazena o arquivo aberto)
@@ -81,10 +83,20 @@ class DatabaseQuery:
                 # Se o ctmt já foi processado, usar o arquivo existente e abrir no modo append ('a')
                 file = ctmts_processados[ctmt]
 
+            mapa_fases = {
+                'ABC': '.1.2.3', 'ACB': '.1.3.2', 'BAC': '.1.2.3', 'BCA': '.1.2.3', 'CAB': '.1.2.3', 'CBA': '.1.2.3',
+                'ABCN': '.1.2.3', 'ACBN': '.1.2.3', 'BACN': '.1.2.3', 'BCAN': '.1.2.3', 'CABN': '.1.2.3',
+                'CBAN': '.1.2.3',
+                'ABN': '.1.2', 'ACN': '.1.3', 'BAN': '.1.2', 'CAN': '.1.3', 'A': '.1', 'B': '.2', 'C': '.3', 'AN': '.1',
+                'BA': '.1.2', 'BN': '.2', 'CN': '.3', 'AB': '.1.2', 'AC': '.1.3', 'BC': '.2.3',
+                'CNA': '.1', 'ANB': '.1.2', 'BNC': '.2.3', 'CA': '.1.3', 'N': '.0', 'BCN': '.2.3.0'
+            }
+            rec_fases = mapa_fases[fas_con]
+
             # Gerar o comando para o OpenDSS
             command_switch = (
-                f'! Linecode-ctmt: {ctmt} \n'
-                f'New Switch.{cod_id} Bus1={pac_1} Bus2={pac_2} Mode=Close \n'
+                f'! Switch-ctmt: {ctmt}\n'
+                f'New line.{cod_id} phases = {len(fas_con)} bus1 = {pac_1}{rec_fases} bus2 = {pac_2}{rec_fases} switch = y\n'
             )
 
 

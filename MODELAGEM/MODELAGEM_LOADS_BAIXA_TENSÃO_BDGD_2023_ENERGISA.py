@@ -37,9 +37,9 @@ class DataBaseQuery:
 
         try:
             query = f"""
-                SELECT
+                SELECT DISTINCT  ucbt_tab.cod_id,
                     ucbt_tab.tip_cc, 
-                    ucbt_tab.pac, ucbt_tab.ctmt, ucbt_tab.fas_con, ucbt_tab.ten_forn, ucbt_tab.cod_id
+                    ucbt_tab.pac, ucbt_tab.ctmt, ucbt_tab.fas_con, ucbt_tab.ten_forn
                 FROM 
                     ucbt_tab
                 WHERE ucbt_tab.gru_ten = 'BT'
@@ -58,7 +58,7 @@ class DataBaseQuery:
 
     def loads(self, total_rows=1960246):
         """Cria comandos no formato arquivo.dss (bloco de notas) para o OpenDSS"""
-        base_dir = r'C:\MODELAGEM_CARGAS_BAIXA_TENSÃO_BDGD_2023_ENERGISA'
+        base_dir = r'C:\MODELAGEM_CARGAS_BAIXA_TENSAO_BDGD_2023_ENERGISA'
 
         # Dicionário para armazenar os ctmt já processados
         ctmts_processados = {}
@@ -77,12 +77,13 @@ class DataBaseQuery:
                     print(f"Total de {total_rows} linhas processadas.")
                     return
 
-                tip_cc = linha[0]
-                pac = linha[1]
-                ctmt = linha[2]
-                fas_con = linha[3]
-                ten_forn = linha[4]
-                cod_id = linha[5]
+                cod_id = linha[0]
+                tip_cc = linha[1]
+                pac = linha[2]
+                ctmt = linha[3]
+                fas_con = linha[4]
+                ten_forn = linha[5]
+
 
                 # Verificar se o ctmt já foi processado
                 if ctmt not in ctmts_processados:
@@ -115,7 +116,7 @@ class DataBaseQuery:
 
                 command_transformers = (
                     f'! load-ctmt: {ctmt}\n'
-                    f'New Load.{cod_id} Bus1 = {pac}{rec_fases} Phases = {len(fases)} Conn = Delta Model = 1 Kv = {ten_forn} Kw = {1} Kvar = 0 tip_cc = {tip_cc}\n'
+                    f'New Load.{cod_id} Bus1 = {pac}{rec_fases} Phases = {len(fases)} Conn = Delta Model = 1 Kv = {ten_forn} Kw = {1} Kvar = 0 !tip_cc = {tip_cc}\n'
                 )
 
                 if file:

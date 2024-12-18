@@ -1,5 +1,4 @@
 import psycopg2
-import py_dss_interface
 import os
 
 
@@ -60,7 +59,7 @@ class DatabaseQuery:
         dados = self.consulta_banco()
 
         # Caminho principal para salvar as subpastas
-        base_dir = r'C:\MODELAGEM_LINECODES_BAIXA_TENSÃO_BDGD_2023_ENERGISA'
+        base_dir = r'C:\MODELAGEM_LINECODES_BAIXA_TENSAO_BDGD_2023_ENERGISA'
 
         # Dicionário para armazenar os ctmt já processados
         ctmts_processados = {}
@@ -93,38 +92,38 @@ class DatabaseQuery:
                 # Se o ctmt já foi processado, usar o arquivo existente e abrir no modo append ('a')
                 file = ctmts_processados[ctmt]
 
-            fases_validades = [letra for letra in fas_con if letra in ['A', 'B', 'C', 'N']]
+            fases_validades = [letra for letra in fas_con if letra in ['A', 'B', 'C']]
 
             # Gerar o comando para cada linha
             if len(fases_validades) == 3:
                 command_linecode = (
                f'! Linecode-ctmt: {ctmt}\n'
                 f'New linecode.{tip_cnd} nphases=3 BaseFreq=60\n'
-                f'~r1={r1}\n'
-                f'~x1={x1}\n'
-                f'~c1={0}\n'
-                f'~Normamps = {cnom}\n'
-                f'~Emergamps = {cmax_renamed}\n'
+                f'~ r1={r1}\n'
+                f'~ x1={x1}\n'
+                f'~ c1={0}\n'
+                f'~ Normamps = {cnom}\n'
+                f'~ Emergamps = {cmax_renamed}\n'
                 )
             elif len(fases_validades) == 2:
                 command_linecode = (
                f'! Linecode-ctmt: {ctmt}\n'
                 f'New linecode.{tip_cnd} nphases=2 BaseFreq=60\n'
-                f'~r1={r1}\n'
-                f'~x1={x1}\n'
-                f'~c1={0}\n'
-                f'~Normamps = {cnom}\n'
-                f'~Emergamps = {cmax_renamed}\n'
+                f'~ r1={r1}\n'
+                f'~ x1={x1}\n'
+                f'~ c1={0}\n'
+                f'~ Normamps = {cnom}\n'
+                f'~ Emergamps = {cmax_renamed}\n'
                 )
             elif len(fases_validades) == 1:
                 command_linecode = (
                 f'! Linecode-ctmt: {ctmt}\n'
                 f'New linecode.{tip_cnd} nphases=1 BaseFreq=60\n'
-                f'~r1={r1}\n'
-                f'~x1={x1}\n'
-                f'~c1={0}\n'
-                f'~Normamps = {cnom}\n'
-                f'~Emergamps = {cmax_renamed}\n'
+                f'~ r1={r1}\n'
+                f'~ x1={x1}\n'
+                f'~ c1={0}\n'
+                f'~ Normamps = {cnom}\n'
+                f'~ Emergamps = {cmax_renamed}\n'
                 )
             else:
                 continue  # Caso não seja nenhuma das opções, ignora e continua
@@ -149,7 +148,7 @@ if __name__ == "__main__":
     # Parâmetros de conexão
     host = 'localhost'
     port = '5432'
-    dbname = 'bdgd'
+    dbname = 'BDGD_2023_ENERGISA'
     user = 'iuri'
     password = 'aa11bb22'
 

@@ -47,7 +47,7 @@ class Fluxo_Potencia:
 
 
 
-    def busca_pastas(self, nome_alimentador):
+    def busca_pastas(self, feederhead):
         """ Esta função envia comandos de compile para o OpenDSS """
 
 
@@ -55,7 +55,7 @@ class Fluxo_Potencia:
         for path in self.caminhos_model:
 
             """ Define o caminho completo da pasta """
-            caminho = os.path.join(path, nome_alimentador)
+            caminho = os.path.join(path, str(feederhead))
 
             """ Verifica se a pasta existe no diretório """
             if os.path.isdir(caminho):
@@ -72,7 +72,7 @@ class Fluxo_Potencia:
                         as barras estão duplicadas mas é desta forma que
                         o python entende uma unica barra
                         """
-                        caminho_arquivo = caminho_arquivo.replace('\\', '\\\\')
+                        caminho_arquivo = caminho_arquivo.replace('/', '\\')
 
                         """ GERANDO COMANDOS PARA O OPENDSS COMPILAR """
                         dss.text(f'Compile [{caminho_arquivo}]')
@@ -179,8 +179,8 @@ class Fluxo_Potencia:
                                         pmpp = dados.get("pmpp")
                                         pf = dados.get("pf")
 
-                            """ Chamado para inserir paineis fotovoltaicos no circuito """
-                            self.adiciona_paineis_fotovoltaicos(cod_id, fas_con, bus1, kv, kva, pmpp, pf)
+                                """ Chamado para inserir paineis fotovoltaicos no circuito """
+                                self.adiciona_paineis_fotovoltaicos(cod_id, fas_con, bus1, kv, kva, pmpp, pf)
 
 
 
@@ -215,7 +215,7 @@ class Fluxo_Potencia:
 
 
         """ Selecionando o alimentador a ser simulado - futuramente implementar um loop """
-        alimentador_nome = pastas[0]
+        alimentador_nome = self.feederhead
 
 
         """ Compila cada modelagem.dss de um mesmo alimentador """
@@ -227,7 +227,13 @@ class Fluxo_Potencia:
         self.busca_dados_paineis_fotovoltaicos(mes, alimentador_nome)
 
 
-        """ Chamado """
+        """ Chamado para inserir EnergyMeters nas linhas do alimentador
+        tais medidores separam automaticamente o circuito em zonas de 
+        acordo com suas posições. ATENÇÃO não inserir EnergyMeter em 
+        nós com mais de duas conexões por que as leituras podem ser 
+        duplicadas porque os medidores estaram sobrepondo a zona de 
+        medição """
+
 
 
 
@@ -242,26 +248,26 @@ if __name__ == "__main__":
     """ Propositalmente a barra slack será a primeira da lista para 
     definir primeiro no elemento circuit """
     caminhos_modelagens = [
-        r"C:\MODELAGEM_BARRA_SLACK_MÉDIA_TENSÃO_BDGD_2023_ENERGISA",
+        r"C:\MODELAGEM_BARRA_SLACK_MEDIA_TENSEO_BDGD_2023_ENERGISA",
         r"C:\MODELAGEM_LINECODES_MEDIA_TENSAO_BDGD_2023_ENERGISA",
-        r"C:\MODELAGEM_LINECODES_BAIXA_TENSÃO_BDGD_2023_ENERGISA",
-        r"C:\MODELAGEM_CARGAS_BAIXA_TENSÃO_BDGD_2023_ENERGISA_PRIMEIRO",
-        r"C:\MODELAGEM_CARGAS_MEDIA_TENSÃO_BDGD_2023_ENERGISA",
-        r"C:\MODELAGEM_CHAVES_SECCIONADORAS_BAIXA_TENSÃO_BDGD_2023_ENERGISA",
-        r"C:\MODELAGEM_CHAVES_SECCIONADORAS_MÉDIA_TENSÃO_BDGD_2023_ENERGISA",
-        r"C:\MODELAGEM_COMPENSADORES_DE_REATIVO_BAIXA_TENSÃO_BDGD_2023_ENERGISA",
-        r"C:\MODELAGEM_COMPENSADORES_DE_REATIVO_MÉDIA_TENSÃO_BDGD_2023_ENERGISA",
-        r"C:\MODELAGEM_GERADORES_MÉDIA_TENSÃO_BDGD_2023_ENERGISA",
-        r"C:\MODELAGEM_LINHAS_BAIXA_TENSÃO_BDGD_2023_ENERGISA",
-        r"C:\MODELAGEM_LINHAS_MÉDIA_TENSÃO_BDGD_2023_ENERGISA_COMPONENTES",
+        r"C:\MODELAGEM_LINECODES_BAIXA_TENSAO_BDGD_2023_ENERGISA",
+        r"C:\MODELAGEM_CARGAS_BAIXA_TENSAO_BDGD_2023_ENERGISA",
+        r"C:\MODELAGEM_CARGAS_MEDIA_TENSAO_BDGD_2023_ENERGISA",
+        r"C:\MODELAGEM_CHAVES_SECCIONADORAS_BAIXA_TENSAO_BDGD_2023_ENERGISA",
+        r"C:\MODELAGEM_CHAVES_SECCIONADORAS_MEDIA_TENSAO_BDGD_2023_ENERGISA",
+        r"C:\MODELAGEM_COMPENSADORES_DE_REATIVO_BAIXA_TENSAO_BDGD_2023_ENERGISA",
+        r"C:\MODELAGEM_COMPENSADORES_DE_REATIVO_MEDIA_TENSAO_BDGD_2023_ENERGISA",
+        r"C:\MODELAGEM_GERADORES_MEDIA_TENSAO_BDGD_2023_ENERGISA",
+        r"C:\MODELAGEM_LINHAS_BAIXA_TENSAO_BDGD_2023_ENERGISA",
+        r"C:\MODELAGEM_LINHAS_MEDIA_TENSAO_BDGD_2023_ENERGISA_COMPONENTES",
         r"C:\MODELAGEM_RAMAIS_BAIXA_TENSAO_BDGD_2023_ENERGISA",
-        r"C:\MODELAGEM_REGULADORES_MÉDIA_TENSÃO_BDGD_2023_ENERGISA",
-        r"C:\MODELAGEM_TRANSFORMADORES_MÉDIA_TENSÃO_BDGD_2023_ENERGISA",
+        r"C:\MODELAGEM_REGULADORES_MEDIA_TENSAO_BDGD_2023_ENERGISA",
+        r"C:\MODELAGEM_TRANSFORMADORES_MEDIA_TENSAO_BDGD_2023_ENERGISA",
     ]
 
-    depois =  [r"C:\MODELAGEM_LINHAS_MÉDIA_TENSÃO_BDGD_2023_ENERGISA_GEOMETRIA_POSTES",
-               r"C:\MODELAGEM_LOADSHAPES_BAIXA_TENSÃO_BDGD_2023_ENERGISA",
-               r"C:\MODELAGEM_LOADSHAPES_MÉDIA_TENSÃO_BDGD_2023_ENERGISA",
+    depois =  [r"C:\MODELAGEM_LINHAS_MEDIA_TENSAO_BDGD_2023_ENERGISA_GEOMETRIA_POSTES",
+               r"C:\MODELAGEM_LOADSHAPES_BAIXA_TENSAO_BDGD_2023_ENERGISA",
+               r"C:\MODELAGEM_LOADSHAPES_MEDIA_TENSAO_BDGD_2023_ENERGISA",
                ]
 
     caminho_geration_shape_fotovoltaico = ["C:\MODELAGEM_LOADSHAPE_PAINEIS_FOTOVOLTAICOS_BAIXA_TENSAO_BDGD_2023_ENERGISA",
@@ -289,7 +295,7 @@ if __name__ == "__main__":
                      ]
 
 
-    alimentador = 0
+    alimentador = 803022
     circuit_pu = 1.029
     load_mult = 1
 
