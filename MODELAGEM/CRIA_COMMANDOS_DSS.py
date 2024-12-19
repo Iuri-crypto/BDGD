@@ -143,7 +143,7 @@ class Fluxo_Potencia:
             if os.path.isdir(caminho):
 
                 """ Cria um caminho para o alimentador selecionado """
-                caminho_create = os.path.join(caminho, nome_alimentador)
+                caminho_create = os.path.join(caminho, str(nome_alimentador))
 
                 """ Verifica se a pasta existe """
                 if os.path.isdir(caminho_create):
@@ -152,7 +152,7 @@ class Fluxo_Potencia:
                     geracoes_meses = os.listdir(caminho_create)
                     if geracoes_meses:
 
-                        primeiro_mes = os.path.join(caminho_create, geracoes_meses[mes])
+                        primeiro_mes = os.path.join(caminho_create, str(geracoes_meses[mes]))
 
                         """ Verifica se a pasta de geração de meses existe """
                         if os.path.isdir(primeiro_mes):
@@ -188,6 +188,7 @@ class Fluxo_Potencia:
         """ Esta função envia todos os comandos necessários ao OpenDSS """
 
         dss.text('Clear')
+        dss.text('Set DefaultBaseFrequency=60')
 
 
         """ Chamado para alterar a tensão da barra de referência (substação primária) """
@@ -224,7 +225,21 @@ class Fluxo_Potencia:
 
         """ Chamado para buscar informações dos paineis fotovoltaicos nos diretorios e envia ao opendss """
         mes = 0 # Estou simulando apenas para o mes de janeiro
-        self.busca_dados_paineis_fotovoltaicos(mes, alimentador_nome)
+        #self.busca_dados_paineis_fotovoltaicos(mes, alimentador_nome)
+
+
+
+        """ Este comando faz o OpenDSS conseguir calcular as tensões de todos os 
+        barramentos em unidades [PU] ele faz automaticamente o reconhecimento 
+        de qual base de tensão usar na hora da divisão """
+        dss.text('set VoltageBases = "1" ')
+        dss.text('CalcVoltageBases')
+
+
+
+        """ Este comando soluciona o fluxo de potência 
+        por padrão o OpenDSS usa o método das correntes """
+        dss.solution_solve()
 
 
         """ Chamado para inserir EnergyMeters nas linhas do alimentador
@@ -248,26 +263,27 @@ if __name__ == "__main__":
     """ Propositalmente a barra slack será a primeira da lista para 
     definir primeiro no elemento circuit """
     caminhos_modelagens = [
-        r"C:\MODELAGEM_BARRA_SLACK_MEDIA_TENSEO_BDGD_2023_ENERGISA",
+        r"C:\MODELAGEM_BARRA_SLACK_MEDIA_TENSAO_BDGD_2023_ENERGISA",
         r"C:\MODELAGEM_LINECODES_MEDIA_TENSAO_BDGD_2023_ENERGISA",
         r"C:\MODELAGEM_LINECODES_BAIXA_TENSAO_BDGD_2023_ENERGISA",
+        r"C:\MODELAGEM_LINECODES_RAMAIS_BDGD_2023_ENERGISA",
         r"C:\MODELAGEM_CARGAS_BAIXA_TENSAO_BDGD_2023_ENERGISA",
         r"C:\MODELAGEM_CARGAS_MEDIA_TENSAO_BDGD_2023_ENERGISA",
         r"C:\MODELAGEM_CHAVES_SECCIONADORAS_BAIXA_TENSAO_BDGD_2023_ENERGISA",
         r"C:\MODELAGEM_CHAVES_SECCIONADORAS_MEDIA_TENSAO_BDGD_2023_ENERGISA",
         r"C:\MODELAGEM_COMPENSADORES_DE_REATIVO_BAIXA_TENSAO_BDGD_2023_ENERGISA",
         r"C:\MODELAGEM_COMPENSADORES_DE_REATIVO_MEDIA_TENSAO_BDGD_2023_ENERGISA",
-        r"C:\MODELAGEM_GERADORES_MEDIA_TENSAO_BDGD_2023_ENERGISA",
         r"C:\MODELAGEM_LINHAS_BAIXA_TENSAO_BDGD_2023_ENERGISA",
         r"C:\MODELAGEM_LINHAS_MEDIA_TENSAO_BDGD_2023_ENERGISA_COMPONENTES",
         r"C:\MODELAGEM_RAMAIS_BAIXA_TENSAO_BDGD_2023_ENERGISA",
         r"C:\MODELAGEM_REGULADORES_MEDIA_TENSAO_BDGD_2023_ENERGISA",
         r"C:\MODELAGEM_TRANSFORMADORES_MEDIA_TENSAO_BDGD_2023_ENERGISA",
+        r"C:\MODELAGEM_GERADORES_MEDIA_TENSAO_BDGD_2023_ENERGISA"
     ]
 
     depois =  [r"C:\MODELAGEM_LINHAS_MEDIA_TENSAO_BDGD_2023_ENERGISA_GEOMETRIA_POSTES",
                r"C:\MODELAGEM_LOADSHAPES_BAIXA_TENSAO_BDGD_2023_ENERGISA",
-               r"C:\MODELAGEM_LOADSHAPES_MEDIA_TENSAO_BDGD_2023_ENERGISA",
+               r"C:\MODELAGEM_LOADSHAPES_MEDIA_TENSAO_BDGD_2023_ENERGISA"
                ]
 
     caminho_geration_shape_fotovoltaico = ["C:\MODELAGEM_LOADSHAPE_PAINEIS_FOTOVOLTAICOS_BAIXA_TENSAO_BDGD_2023_ENERGISA",
@@ -295,7 +311,7 @@ if __name__ == "__main__":
                      ]
 
 
-    alimentador = 803022
+    alimentador = 764444
     circuit_pu = 1.029
     load_mult = 1
 

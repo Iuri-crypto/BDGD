@@ -99,8 +99,8 @@ class DatabaseQuery:
                 command_linecode = (
                f'! Linecode-ctmt: {ctmt}\n'
                 f'New linecode.{tip_cnd} nphases=3 BaseFreq=60\n'
-                f'~ r1={r1}\n'
-                f'~ x1={x1}\n'
+                f'~ r1={r1/1000}\n'
+                f'~ x1={x1/1000}\n'
                 f'~ c1={0}\n'
                 f'~ Normamps = {cnom}\n'
                 f'~ Emergamps = {cmax_renamed}\n'
@@ -109,8 +109,8 @@ class DatabaseQuery:
                 command_linecode = (
                f'! Linecode-ctmt: {ctmt}\n'
                 f'New linecode.{tip_cnd} nphases=2 BaseFreq=60\n'
-                f'~ r1={r1}\n'
-                f'~ x1={x1}\n'
+                f'~ r1={r1/1000}\n'
+                f'~ x1={x1/1000}\n'
                 f'~ c1={0}\n'
                 f'~ Normamps = {cnom}\n'
                 f'~ Emergamps = {cmax_renamed}\n'
@@ -119,8 +119,8 @@ class DatabaseQuery:
                 command_linecode = (
                 f'! Linecode-ctmt: {ctmt}\n'
                 f'New linecode.{tip_cnd} nphases=1 BaseFreq=60\n'
-                f'~ r1={r1}\n'
-                f'~ x1={x1}\n'
+                f'~ r1={r1/1000}\n'
+                f'~ x1={x1/1000}\n'
                 f'~ c1={0}\n'
                 f'~ Normamps = {cnom}\n'
                 f'~ Emergamps = {cmax_renamed}\n'

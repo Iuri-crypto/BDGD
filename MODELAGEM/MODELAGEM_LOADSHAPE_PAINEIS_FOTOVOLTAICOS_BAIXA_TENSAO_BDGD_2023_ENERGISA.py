@@ -158,6 +158,8 @@ class DatabaseQuery:
 
                                 """Ajuste da potência gerada para atingir a energia desejada"""
                                 energia_total_gerada = potencia_gerada.sum()
+                                if energia_total_gerada == 0:
+                                    energia_total_gerada = 1
                                 fator_ajuste = (energia_desejada[index_mensal] / 30) / energia_total_gerada
 
                                 """Ajustar a potência gerada para atingir a energia desejada"""

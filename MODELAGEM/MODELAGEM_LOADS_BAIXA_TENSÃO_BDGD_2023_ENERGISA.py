@@ -114,6 +114,8 @@ class DataBaseQuery:
 
                 fases = [fas for fas in fas_con if fas in ['A', 'B', 'C']]
 
+
+
                 command_transformers = (
                     f'! load-ctmt: {ctmt}\n'
                     f'New Load.{cod_id} Bus1 = {pac}{rec_fases} Phases = {len(fases)} Conn = Delta Model = 1 Kv = {ten_forn} Kw = {1} Kvar = 0 !tip_cc = {tip_cc}\n'

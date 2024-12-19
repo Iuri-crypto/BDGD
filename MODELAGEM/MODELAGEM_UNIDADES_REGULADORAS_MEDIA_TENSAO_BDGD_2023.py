@@ -137,7 +137,7 @@ class DataBaseQuery:
             # Gerar o comando para cada linha
             command_transformers = f"""
             ! Regulador-ctmt: {ctmt}
-            new transformer.reg{lig_fas_p}_{cod_id} phases={len(lig_fas_p)} windings=2 bank={cod_id} buses=({pac_1}{rec_fases_p} {pac_2}{rec_fases_s}) conns='Delta Delta' kvs="{ten_nominal_voltage / 1000} {ten_nominal_voltage / 1000}" kvas="{pot_nom} {pot_nom}" XHL = {xhl}
+            new transformer.reg{lig_fas_p}_{cod_id} phases={len(lig_fas_p)} windings=2 bank={cod_id} buses=({pac_1}{rec_fases_p} {pac_2}{rec_fases_s}) conns='Delta Delta' kvs="{ten_nominal_voltage / 1000} {ten_nominal_voltage / 1000}" kvas="{pot_nom} {pot_nom}" XHL = 1
             new regcontrol.creg{lig_fas_p}_{cod_id} transformer=reg{lig_fas_p}_{cod_id} winding=2 vreg={int(ten_nominal_voltage) / int(rel_tp)} band={cod_id} ptratio={rel_tp} ctprim={cor_nom} 
             """
 
