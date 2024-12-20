@@ -22,6 +22,7 @@ class Fluxo_Potencia:
         self.caminhos_geration_shape_fotovoltaico = caminhos_geration_shape_fotovoltaico
 
 
+
         """ Chamando a função principal que controla tudo """
         self.envia_comandos_opendss()
 
@@ -135,6 +136,7 @@ class Fluxo_Potencia:
     def busca_dados_paineis_fotovoltaicos(self, mes, nome_alimentador):
         """ Esta função adiciona paines fotovoltaicos no alimentador  """
 
+
         """ Caminhos de geração da baixa e da media para gd """
         caminho_gd = self.caminhos_geration_shape_fotovoltaico
         for caminho in caminho_gd:
@@ -184,6 +186,9 @@ class Fluxo_Potencia:
 
 
 
+    def inserir_energy_meters(self):
+
+
     def envia_comandos_opendss(self):
         """ Esta função envia todos os comandos necessários ao OpenDSS """
 
@@ -223,23 +228,10 @@ class Fluxo_Potencia:
         self.busca_pastas(alimentador_nome)
 
 
-        """ Chamado para buscar informações dos paineis fotovoltaicos nos diretorios e envia ao opendss """
+        """ Chamado para buscar informações dos paineis fotovoltaicos nos diretorios e envia ao OpenDSS """
         mes = 0 # Estou simulando apenas para o mes de janeiro
-        #self.busca_dados_paineis_fotovoltaicos(mes, alimentador_nome)
+        self.busca_dados_paineis_fotovoltaicos(mes, alimentador_nome)
 
-
-
-        """ Este comando faz o OpenDSS conseguir calcular as tensões de todos os 
-        barramentos em unidades [PU] ele faz automaticamente o reconhecimento 
-        de qual base de tensão usar na hora da divisão """
-        dss.text('set VoltageBases = "1" ')
-        dss.text('CalcVoltageBases')
-
-
-
-        """ Este comando soluciona o fluxo de potência 
-        por padrão o OpenDSS usa o método das correntes """
-        dss.solution_solve()
 
 
         """ Chamado para inserir EnergyMeters nas linhas do alimentador
@@ -248,11 +240,22 @@ class Fluxo_Potencia:
         nós com mais de duas conexões por que as leituras podem ser 
         duplicadas porque os medidores estaram sobrepondo a zona de 
         medição """
+        self.inserir_energy_meters()
+
+
+
+        """ Este comando faz o OpenDSS conseguir calcular as tensões de todos os 
+        barramentos em unidades [PU] ele faz automaticamente o reconhecimento 
+        de qual base de tensão usar na hora da divisão """
+        dss.text('set VoltageBases = "1" ')
+        dss.text('CalcVoltageBases')
+        dss.text('set maxiterations=20')
 
 
 
 
-        """ Resolve o circuito """
+        """ Este comando soluciona o fluxo de potência 
+        por padrão o OpenDSS usa o método das correntes """
         dss.solution_solve()
 
 

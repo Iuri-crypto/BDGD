@@ -1,8 +1,5 @@
 import psycopg2
-import matplotlib.pyplot as plt
 import pandas as pd
-import pvlib
-import numpy as np
 import os
 from pvlib import location
 import json
@@ -40,17 +37,32 @@ class DatabaseQuery:
             # Consulta a tabela SSDMT para extrair as colunas especificadas
             query = """
                 SELECT 
-                        ugbt_tab.cod_id, ugbt_tab.pac, ugbt_tab.ctmt, ugbt_tab.fas_con,
-                        ugbt_tab.ten_con, ugbt_tab.pot_inst, ugbt_tab.cep,
+                        ugbt_tab.cod_id, 
+                        ugbt_tab.pac, 
+                        ugbt_tab.ctmt, 
+                        ugbt_tab.fas_con,
+                        ugbt_tab.ten_con, 
+                        ugbt_tab.pot_inst, 
+                        ugbt_tab.cep,
                         ugbt_tab.ceg_gd,
-                        ugbt_tab.ene_01, ugbt_tab.ene_02, ugbt_tab.ene_03,
-                        ugbt_tab.ene_04, ugbt_tab.ene_05, ugbt_tab.ene_06,
-                        ugbt_tab.ene_07, ugbt_tab.ene_08, ugbt_tab.ene_09,
-                        ugbt_tab.ene_10, ugbt_tab.ene_11, ugbt_tab.ene_12,
+                        ugbt_tab.ene_01, 
+                        ugbt_tab.ene_02, 
+                        ugbt_tab.ene_03,
+                        ugbt_tab.ene_04, 
+                        ugbt_tab.ene_05, 
+                        ugbt_tab.ene_06,
+                        ugbt_tab.ene_07, 
+                        ugbt_tab.ene_08, 
+                        ugbt_tab.ene_09,
+                        ugbt_tab.ene_10, 
+                        ugbt_tab.ene_11, 
+                        ugbt_tab.ene_12,
                         ugbt_tab.dem_cont
-
-                FROM 
-                    ugbt_tab;       
+                    FROM 
+                        ugbt_tab
+                    ORDER BY 
+                        ugbt_tab.ctmt;
+    
             """
             # Executa a consulta
             self.cur.execute(query)
@@ -158,9 +170,14 @@ class DatabaseQuery:
 
                                 """Ajuste da potência gerada para atingir a energia desejada"""
                                 energia_total_gerada = potencia_gerada.sum()
+                                fator_ajuste = 1
                                 if energia_total_gerada == 0:
                                     energia_total_gerada = 1
-                                fator_ajuste = (energia_desejada[index_mensal] / 30) / energia_total_gerada
+
+                                if energia_desejada[index_mensal] == 0:
+                                    fator_ajuste = (potencia_max_inversor_kw / 30) / energia_total_gerada
+                                if energia_desejada[index_mensal] != 0:
+                                    fator_ajuste = (energia_desejada[index_mensal] / 30) / energia_total_gerada
 
                                 """Ajustar a potência gerada para atingir a energia desejada"""
                                 potencia_gerada_ajustada = potencia_gerada * fator_ajuste
@@ -197,11 +214,13 @@ class DatabaseQuery:
 
                             fp = 1
 
+                            # todas as tensoes dos paineis solares de baixa são de : 220 volts
+
                             command_pvsystem = {
                                 "cod_id": cod_id,
                                 "fas_con": fas_con,
                                 "bus1": pac + rec_fases,
-                                "kv": ten,
+                                "kv": 0.220,
                                 "kva": max(potencia_gerada_ajustada),
                                 "pmpp": max(potencia_gerada_ajustada),
                                 "pf": fp
