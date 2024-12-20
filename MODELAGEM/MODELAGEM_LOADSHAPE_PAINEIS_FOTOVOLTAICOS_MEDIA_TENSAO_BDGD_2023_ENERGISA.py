@@ -157,12 +157,16 @@ class DatabaseQuery:
                                 energia_total_gerada = potencia_gerada.sum()
                                 if energia_total_gerada == 0:
                                     energia_total_gerada = 1
-                                fator_ajuste = (energia_desejada[index_mensal] / 30) / energia_total_gerada
+
+                                if energia_desejada[index_mensal] == 0:
+                                    fator_ajuste = (potencia_max_inversor_kw / 30) / energia_total_gerada
+                                if energia_desejada[index_mensal] != 0:
+                                    fator_ajuste = (energia_desejada[index_mensal] / 30) / energia_total_gerada
 
                                 """Ajustar a potência gerada para atingir a energia desejada"""
                                 potencia_gerada_ajustada = potencia_gerada * fator_ajuste
 
-                                return  potencia_gerada_ajustada.tolist()
+                                return potencia_gerada_ajustada.tolist()
 
                             latitude = -15.59583
                             longitude = -56.09694
@@ -194,11 +198,13 @@ class DatabaseQuery:
 
                             fp = 1
 
+                            # todas as tensoes dos paineis solares de baixa são de : 220 volts
+
                             command_pvsystem = {
                                 "cod_id": cod_id,
                                 "fas_con": fas_con,
                                 "bus1": pac + rec_fases,
-                                "kv": ten,
+                                "kv": 0.220,
                                 "kva": max(potencia_gerada_ajustada),
                                 "pmpp": max(potencia_gerada_ajustada),
                                 "pf": fp
