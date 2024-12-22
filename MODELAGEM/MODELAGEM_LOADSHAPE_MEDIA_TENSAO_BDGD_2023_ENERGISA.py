@@ -99,7 +99,7 @@ def gerar_comandos_para_opendss_1(dbhost, dbport, dbdbname, dbuser, dbpassword):
                 # Calcular o fator de ajuste e as potências ajustadas
                 energia_curva_de_carga = sum(pot_values) * 0.25
                 f = (int(ene_values[ene_index]) / 30) / energia_curva_de_carga
-                potencias_ajustadas = [f * pot for pot in pot_values]
+                potencias_ajustadas = [round(f * pot, 2) for pot in pot_values]
 
                 # Gerar o conteúdo baseado no tipo de dia
                 if tip == 'DU':

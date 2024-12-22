@@ -1,6 +1,6 @@
 import time
 
-from MODELAGEM_LOADSHAPE_MEDIA_TENSAO_BDGD_2023_ENERGISA import gerar_comandos_para_opendss_1
+#from MODELAGEM_LOADSHAPE_MEDIA_TENSAO_BDGD_2023_ENERGISA import gerar_comandos_para_opendss_1
 from MODELAGEM_LOADSHAPE_BAIXA_TENSAO_BDGD_2023_ENERGISA import gerar_comandos_para_opendss_2
 
 
@@ -15,7 +15,7 @@ if __name__ == "__main__":
     start_time = time.time()
 
     # Chama a função que gera os comandos OpenDSS
-    gerar_comandos_para_opendss_1(host, port, dbname, user, password)
+    #gerar_comandos_para_opendss_1(host, port, dbname, user, password)
     gerar_comandos_para_opendss_2(host, port, dbname, user, password)
 
     end_time = time.time()
