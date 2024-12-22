@@ -59,10 +59,17 @@ class DatabaseQuery:
         dados_ssmt = self.consulta_banco()  # Dados da consulta SSDMT
 
         # Caminho principal para salvar as subpastas
-        base_dir = r'C:\MODELAGEM_COMPENSADORES_DE_REATIVO_BAIXA_TENSÃO_BDGD_2023_ENERGISA'
+        base_dir = r'C:\MODELAGEM_COMPENSADORES_DE_REATIVO_BAIXA_TENSAO_BDGD_2023_ENERGISA'
 
         # Dicionário para armazenar os ctmt já processados
         ctmts_processados = {}
+
+        # Dicionário para mapear os valores de ten_forn para as tensões correspondentes
+        tensoes = {
+            '0': 0, '1': 110, '2': 115, '3': 120, '4': 121, '5': 125, '6': 127, '7': 208, '8': 216, '9': 216.5,
+            '10': 220, '11': 230, '12': 231, '13': 240, '14': 254, '15': 380, '72': 220, '49': 220
+        }
+
 
         # Iterar sobre os dados de SSDMT e gerar uma subpasta para cada CTMT
         for index, linha in enumerate(dados_ssmt):
@@ -103,11 +110,13 @@ class DatabaseQuery:
 
             fases = [fas for fas in fas_con if fas in ['A', 'B', 'C']]
 
-            # Definir o valor de tensão baseado em 'ten_nom'
-            if ten_nom == 49:
-                ten = 13.8
+            # Verificar se o ten_forn existe no dicionário tensoes
+            if ten_nom in tensoes:
+                t = tensoes[ten_nom]
             else:
-                ten = 34.5
+                # Se o ten_forn não estiver no dicionário, usar um valor default ou gerar um erro
+                print(f"Atenção: Valor de ten_forn {ten_nom} não encontrado no dicionário!")
+                t = 220  # Ou um valor padrão adequado
 
             rec_fases = mapa_fases.get(fas_con, '')
 
@@ -115,12 +124,12 @@ class DatabaseQuery:
             if tip_unid == 56:
                 command_linecode = (
                                f'! Linecode-ctmt: {ctmt}\n'
-                               f'New Reactor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {ten} kVAR = {pot_nom} phases = {len(fases)} conn = wye\n'
+                               f'New Reactor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {t/1000} kVAR = {pot_nom} phases = {len(fases)} conn = wye\n'
                 )
             else:
                 command_linecode = (
                                f'! Linecode-ctmt: {ctmt}\n'
-                               f'New Capacitor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {ten} kVAR = {pot_nom} phases = {len(fases)} conn = wye\n'
+                               f'New Capacitor.{cod_id} Bus1 = {pac_1}{rec_fases} kv = {t/1000} kVAR = {pot_nom} phases = {len(fases)} conn = wye\n'
                                )
 
             # Escrever o comando no arquivo .dss

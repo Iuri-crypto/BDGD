@@ -37,15 +37,16 @@ class DataBaseQuery:
 
         try:
             query = f"""
-               SELECT DISTINCT ucbt_tab.cod_id,
-                ucbt_tab.tip_cc, 
-                ucbt_tab.pac, 
-                ucbt_tab.ctmt, 
-                ucbt_tab.fas_con, 
-                ucbt_tab.ten_forn
-                FROM ucbt_tab
-                WHERE ucbt_tab.gru_ten = 'BT'
-                ORDER BY ucbt_tab.ctmt
+               SELECT 
+                pip.cod_id,
+                pip.pot_lamp, 
+                pip.pac, 
+                pip.ctmt, 
+                pip.fas_con, 
+                pip.ten_forn
+                FROM pip
+                WHERE pip.gru_ten = 'BT'
+                ORDER BY pip.ctmt
                 LIMIT {limit} OFFSET {offset};
 
             """
@@ -60,9 +61,9 @@ class DataBaseQuery:
             print(f"Erro ao gerar comandos para o OpenDSS: {e}")
             return []
 
-    def loads(self, total_rows=1960246):
+    def loads(self, total_rows=497784):
         """Cria comandos no formato arquivo.dss (bloco de notas) para o OpenDSS"""
-        base_dir = r'C:\MODELAGEM_CARGAS_BAIXA_TENSAO_BDGD_2023_ENERGISA'
+        base_dir = r'C:\MODELAGEM_PIP_BAIXA_TENSAO_BDGD_2023_ENERGISA'
 
         # Dicionário para armazenar os ctmt já processados
         ctmts_processados = {}
@@ -70,7 +71,7 @@ class DataBaseQuery:
         # Dicionário para mapear os valores de ten_forn para as tensões correspondentes
         tensoes = {
             '0': 0, '1': 110, '2': 115, '3': 120, '4': 121, '5': 125, '6': 127, '7': 208, '8': 216, '9': 216.5,
-            '10': 220, '11': 230, '12': 231, '13': 240, '14': 254, '15': 380
+            '10': 220, '11': 230, '12': 231, '13': 240, '14': 254, '15': 380, '17': 440
         }
 
         # Definir o total de linhas que desejamos percorrer
@@ -88,11 +89,12 @@ class DataBaseQuery:
                     return
 
                 cod_id = linha[0]
-                tip_cc = linha[1]
+                pot_lamp = linha[1]
                 pac = linha[2]
                 ctmt = linha[3]
                 fas_con = linha[4]
                 ten_forn = linha[5]
+
 
                 # Verificar se o ctmt já foi processado
                 if ctmt not in ctmts_processados:
@@ -101,7 +103,7 @@ class DataBaseQuery:
                     os.makedirs(ctmt_folder, exist_ok=True)
 
                     # Criar o novo arquivo .dss para este ctmt
-                    file_path = os.path.join(ctmt_folder, 'loads.dss')
+                    file_path = os.path.join(ctmt_folder, 'pip.dss')
                     file = open(file_path, 'w')
 
                     # Adicionar o ctmt ao dicionário de ctmts processados (armazena o arquivo aberto)
@@ -135,7 +137,7 @@ class DataBaseQuery:
 
                 command_transformers = (
                     f'! load-ctmt: {ctmt}\n'
-                    f'New Load.{cod_id} Bus1 = {pac}{rec_fases} Phases = {len(fases)} Conn = Delta Model = 1 Kv = {t / 1000} Kw = {1} Kvar = 0 !tip_cc = {tip_cc}\n'
+                    f'New Load.{cod_id} Bus1 = {pac}{rec_fases} Phases = {len(fases)} Conn = Delta Model = 1 Kv = {t / 1000} Kw = {pot_lamp / 1000} Kvar = 0 \n'
                 )
 
                 if file:
@@ -180,7 +182,7 @@ if __name__ == "__main__":
     db_query.connect()
 
     # Gerar comandos para o OpenDSS (processar até 1960246 linhas)
-    db_query.loads(total_rows=1960246)
+    db_query.loads(total_rows=497784)
 
     # Fechar a conexão com o banco de dados
     db_query.close()

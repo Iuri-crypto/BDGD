@@ -198,7 +198,7 @@ class DatabaseQuery:
 
                             fp = 1
 
-                            # todas as tensoes dos paineis solares de baixa são de : 220 volts
+                            # todas as tensoes dos paineis solares de media são de : ?? volts
 
                             command_pvsystem = {
                                 "cod_id": cod_id,
