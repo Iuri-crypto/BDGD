@@ -31,10 +31,17 @@ for i in range(layer_count):
     layer = gdb.GetLayerByIndex(i)  # Obtém a camada pelo índice
     layer_name = layer.GetName()  # Nome da camada
 
-    print(f"Convertendo camada {layer_name} para SQL...")
+    print(f"Verificando se a camada {layer_name} já foi convertida...")
 
     # Caminho de saída para o arquivo SQL
     output_sql = os.path.join(output_dir, f"{layer_name}.sql")
+
+    # Verifica se o arquivo SQL já existe no diretório de saída
+    if os.path.exists(output_sql):
+        print(f"A camada {layer_name} já foi convertida. Pulando a criação.")
+        continue  # Pula a camada, caso o arquivo já exista
+
+    print(f"Convertendo camada {layer_name} para SQL...")
 
     # Configurar o driver para exportação para SQL
     driver = ogr.GetDriverByName("SQLite")  # Usando SQLite como exemplo; pode ser ajustado para outro formato
