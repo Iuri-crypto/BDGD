@@ -2,6 +2,7 @@ import psycopg2
 import os
 import time
 import json
+from concurrent.futures import ThreadPoolExecutor
 
 def gerar_comandos_para_opendss_1(dbhost, dbport, dbdbname, dbuser, dbpassword):
     """Função que conecta ao banco de dados, gera os comandos no formato desejado e cria os arquivos JSON para o OpenDSS"""
@@ -70,48 +71,50 @@ def gerar_comandos_para_opendss_1(dbhost, dbport, dbdbname, dbuser, dbpassword):
     # Dicionário para armazenar os ctmt já processados
     ctmts_processados = {}
 
-    # Iterar sobre os dados e gerar uma subpasta para cada ctmt
-    for index, linha in enumerate(dados):
-        ene_values = linha[:12]  # ene_01 a ene_12
-        tip_cc = linha[12]
-        gru_ten = linha[13]
-        tip_dia = linha[14]
-        pac = linha[15]
-        ctmt = linha[16]
-        pot_values = linha[19:115]  # pot_01 a pot_96
-        cod_id = linha[115]
+    # Função auxiliar para gerar os arquivos JSON
+    def gerar_arquivo_json(ene_index, ene_values, pot_values, cod_id, ctmt_folder):
+        ene_folder = os.path.join(ctmt_folder, str(ene_index + 1))
+        os.makedirs(ene_folder, exist_ok=True)
 
-        # Verificar se o ctmt já foi processado
-        if ctmt not in ctmts_processados:
-            # Se o ctmt não foi processado ainda, criar uma nova pasta para o ctmt
-            ctmt_folder = os.path.join(base_dir, str(ctmt))
-            os.makedirs(ctmt_folder, exist_ok=True)
+        # Criar um arquivo JSON para cada cod_id para os 3 tipos de dia
+        for tip in ['DU', 'SA', 'DO']:
+            file_name = f"{cod_id}_{tip}.json"
+            file_path = os.path.join(ene_folder, file_name)
 
-        for ene_index, ene in enumerate(ene_values):
-            ene_folder = os.path.join(ctmt_folder, str(ene_index + 1))
-            os.makedirs(ene_folder, exist_ok=True)
+            # Calcular o fator de ajuste e as potências ajustadas
+            energia_curva_de_carga = sum(pot_values) * 0.25
+            f = (int(ene_values[ene_index]) / 30) / energia_curva_de_carga
+            potencias_ajustadas = [round(f * pot, 2) for pot in pot_values]
 
-            # Criar um arquivo JSON para cada cod_id para os 3 tipos de dia
-            for tip in ['DU', 'SA', 'DO']:
-                file_name = f"{cod_id}_{tip}.json"
-                file_path = os.path.join(ene_folder, file_name)
+            # Gerar o conteúdo baseado no tipo de dia
+            command_loadshapes = {"loadshape": potencias_ajustadas}
 
-                # Calcular o fator de ajuste e as potências ajustadas
-                energia_curva_de_carga = sum(pot_values) * 0.25
-                f = (int(ene_values[ene_index]) / 30) / energia_curva_de_carga
-                potencias_ajustadas = [round(f * pot, 2) for pot in pot_values]
+            # Escrever no arquivo JSON
+            with open(file_path, 'w') as file:
+                json.dump(command_loadshapes, file, indent=4)
 
-                # Gerar o conteúdo baseado no tipo de dia
-                if tip == 'DU':
-                    command_loadshapes = {"LoadShape_dia_util": ', '.join(map(str, potencias_ajustadas))}
-                elif tip == 'SA':
-                    command_loadshapes = {"LoadShape_sabado": ', '.join(map(str, potencias_ajustadas))}
-                elif tip == 'DO':
-                    command_loadshapes = {"LoadShape_domingos_e_feriados": ', '.join(map(str, potencias_ajustadas))}
+    # Usar ThreadPoolExecutor para executar o processamento paralelo
+    with ThreadPoolExecutor() as executor:
+        for index, linha in enumerate(dados):
+            ene_values = linha[:12]  # ene_01 a ene_12
+            tip_cc = linha[12]
+            gru_ten = linha[13]
+            tip_dia = linha[14]
+            pac = linha[15]
+            ctmt = linha[16]
+            pot_values = linha[19:115]  # pot_01 a pot_96
+            cod_id = linha[115]
 
-                # Escrever no arquivo JSON
-                with open(file_path, 'w') as file:
-                    json.dump(command_loadshapes, file, indent=4)
+            # Verificar se o ctmt já foi processado
+            if ctmt not in ctmts_processados:
+                # Se o ctmt não foi processado ainda, criar uma nova pasta para o ctmt
+                ctmt_folder = os.path.join(base_dir, str(ctmt))
+                os.makedirs(ctmt_folder, exist_ok=True)
+                ctmts_processados[ctmt] = ctmt_folder
+
+            # Processar a geração de arquivos JSON para cada ene_value
+            for ene_index, ene in enumerate(ene_values):
+                executor.submit(gerar_arquivo_json, ene_index, ene_values, pot_values, cod_id, ctmts_processados[ctmt])
 
     # Fechar a conexão com o banco de dados
     if cur:

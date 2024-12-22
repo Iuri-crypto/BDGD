@@ -2,6 +2,7 @@ import json
 import os
 import numpy as np
 import py_dss_interface
+from collections import defaultdict
 
 dss = py_dss_interface.DSSDLL()
 
@@ -10,8 +11,8 @@ class Fluxo_Potencia:
     """ Classe para calcular o fluxo de potência nos alimentadores """
 
     def __init__(self, alimentadores_recebidos, caminhos_model, circuito_pu, loads_mult, irradiancia_96, feederhead,
-                 caminhos_geration_shape_fotovoltaico, medidores_pnt, curva_de_carga_pip,
-                 modelagem_curva_carga, mes):
+                 caminhos_geration_shape_fotovoltaico, medidores_pnt, curva_de_carga_pi_p,
+                 modelagem_curva_carg_a, me_s, max_iteracoe_s):
         """ Inicializa a classe Fluxo Potencia """
         self.alimentadores_recebidos = alimentadores_recebidos
         self.caminhos_model = caminhos_model
@@ -21,9 +22,10 @@ class Fluxo_Potencia:
         self.feederhead = feederhead
         self.caminhos_geration_shape_fotovoltaico = caminhos_geration_shape_fotovoltaico
         self.medidores = medidores_pnt
-        self.curva_de_carga_pip = curva_de_carga_pip
-        self.modelagem_curva_carga = modelagem_curva_carga
-        self.mes = mes
+        self.curva_de_carga_pi_p = curva_de_carga_pi_p
+        self.modelagem_curva_carg_a = modelagem_curva_carg_a
+        self.me_s = me_s
+        self.max_iteracoe_s = max_iteracoe_s
 
 
 
@@ -205,78 +207,130 @@ class Fluxo_Potencia:
 
 
 
-    def aplica_curvas_carga_geracao(self, modelagem_curva_carga, irradiancia_96, feederhead, mes):
-        """ Esta função vai rodar para cada ponto da curva tanto de geração como de carga """
+    def aplica_curvas_geracao(self, valor):
+        """ Esta função aplica as curvas de geração para os paineis fotovoltaicos """
 
 
-        """ Iterar para cada um dos dias da semana (DO, DU, SA) 
-        DO: DOMINGO, DU: DIA UTIL, SA: SABADO               """
-        for i in ["DO", "DU", "SA"]:
+        """ Nomes das cargas """
+        total_pvsystems = dss.pvsystems_all_names()
 
+        """ Ativa a primeira carga """
+        dss.pvsystems_first()
 
-            """ Iterar para cada um dos pontos das curvas """
-            for ponto_simulacao in range(len(irradiancia_96)):
+        """ Percorrer cada carga """
+        for index, pvsystem in enumerate(total_pvsystems):
+            dss.circuit_set_active_element(f"pvsystem.{pvsystem}")
 
+            """ Atualizando a irradiância que incide no painel fotovoltaico """
+            dss.pvsystems_write_irradiance(valor)
 
-                """ Nomes das cargas """
-                total_loads = dss.loads_all_names()
-
-                """ Ativa a primeira carga """
-                dss.loads_first()
-
-                """ Diretórios de cargas de baixa e média tensão """
-                d_baixa = modelagem_curva_carga[0]
-                d_media = modelagem_curva_carga[1]
-
-                """ Percorrer cada carga """
-                for index, load in enumerate(total_loads):
-                    dss.circuit_set_active_element(f"load.{load}")
-
-                    """  Definir o caminho do arquivo json """
-                    baixa_tensao = os.path.join(d_baixa, feederhead, mes, f"{load}_{i}.json")
-                    media_tensao = os.path.join(d_media, feederhead, mes, f"{load}_{i}.json")
-
-
-                    """ Verificar se o caminho existe no primeiro diretório """
-                    if os.path.exists(baixa_tensao):
-                        dados = baixa_tensao
-
-                        """ Verifica se o caminho existe no segundo diretório """
-                    elif os.path.exists(media_tensao):
-                        dados = media_tensao
-
-                    else:
-                        print(f"Arquivo json não encontrado para a carga: {load}")
-                        continue
-
-                    """ Abrir e carregar o conteúdo do arquivo json """
-                    with open(dados, 'r') as file:
-                        curva_carga = json.load(file)
-
-                        """ Acessando toda a curva de carga """
-                        elemento = curva_carga.get("loadshape")
-
-                        """ Acessando o elemento de interesse na lista """
-                        ponto = elemento[ponto_simulacao]
+            """ Passando para o próximo painel """
+            dss.pvsystems_next()
 
 
 
+    def aplica_curvas_carga_geracao(self, modelagem_curva_carg_a, irradiancia_96, feederhead, me_s, max_iteracoe_s, resposta_a):
+            """ Esta função vai rodar para cada ponto da curva tanto de geração como de carga """
+
+            leitura_energy_meters = defaultdict(lambda: defaultdict(dict))
+
+            """ Iterar para cada um dos dias da semana (DO, DU, SA) 
+            DO: DOMINGO, DU: DIA UTIL, SA: SABADO               """
+            for dia in ["DO", "DU", "SA"]:
+
+
+                """ Iterar para cada um dos pontos das curvas """
+                for ponto_simulacao, valor in enumerate(irradiancia_96):
+
+
+                    """ Nomes das cargas """
+                    total_loads = dss.loads_all_names()
+
+                    """ Ativa a primeira carga """
+                    dss.loads_first()
+
+                    """ Diretórios de cargas de baixa e média tensão """
+                    d_baixa = modelagem_curva_carg_a[0]
+                    d_media = modelagem_curva_carg_a[1]
+
+                    """ Percorrer cada carga """
+                    for index, load in enumerate(total_loads):
+                        dss.circuit_set_active_element(f"load.{load}")
+
+                        """  Definir o caminho do arquivo json """
+                        baixa_tensao = os.path.join(d_baixa, str(feederhead), str(me_s), f"{load}_{dia}.json")
+                        media_tensao = os.path.join(d_media, str(feederhead), str(me_s), f"{load}_{dia}.json")
+
+
+                        """ Verificar se o caminho existe no primeiro diretório """
+                        if os.path.exists(baixa_tensao):
+                            dados = baixa_tensao
+
+                            """ Verifica se o caminho existe no segundo diretório """
+                        elif os.path.exists(media_tensao):
+                            dados = media_tensao
+
+                        else:
+                            print(f"Arquivo json não encontrado para a carga: {load}")
+                            continue
+
+                        """ Abrir e carregar o conteúdo do arquivo json """
+                        with open(dados, 'r') as file:
+                            curva_carga = json.load(file)
+
+                            """ Acessando toda a curva de carga """
+                            elemento = curva_carga.get("loadshape")
+
+                            """ Acessando o elemento de interesse na lista """
+                            ponto = elemento[ponto_simulacao]
+
+                            """ Atualizando a potência da carga """
+                            dss.loads_write_kw(ponto)
+
+                    """ Chama a função para atualizar a geração fotovoltaica para a irradiancia atual """
+                    self.aplica_curvas_geracao(valor)
+
+
+                    dss.text('set VoltageBases = "1" ')
+                    dss.text('CalcVoltageBases')
+                    dss.text(f'set maxiterations={max_iteracoe_s}')
+
+                    """ Este comando soluciona o fluxo de potência 
+                    por padrão o OpenDSS usa o método das correntes """
+                    dss.solution_solve()
+
+                    """ Este comando é para ativar a leitura dos EnergyMeters """
+                    dss.text('sample')
+
+
+                    """ Coletando dados dos energymeters de 15 em 15 minutos """
+
+                    """ Setando primeiro energymeter """
+                    dss.meters_first()
+
+                    for meter in dss.meters_all_names():
+                        dss.circuit_set_active_element(f"energymeter.{meter}")
+
+                        """ Coletando todas as informações necessárias """
+                        informacoes_energy_meters = dss.meters_totals()
+
+                        """ Coleta de Enegia consumida pelas cargas """
+                        zone_kwh = informacoes_energy_meters[4]
+                        zone_kvar = informacoes_energy_meters[5]
+
+                        """ Coleta de Energias perdidas """
+                        zone_losses_kwh = informacoes_energy_meters[12]
+                        zone_losses_kvar = informacoes_energy_meters[13]
+
+                        leitura_energy_meters[meter][dia]["zone_kwh"] = zone_kwh
+                        leitura_energy_meters[meter][dia]["zone_kvar"] = zone_kvar
+                        leitura_energy_meters[meter][dia]["zone_losses_kwh"] = zone_losses_kwh
+                        leitura_energy_meters[meter][dia]["zone_losses_kvar"] = zone_losses_kvar
 
 
 
-             """ Este comando faz o OpenDSS conseguir calcular as tensões de todos os 
-             barramentos em unidades [PU] ele faz automaticamente o reconhecimento 
-             de qual base de tensão usar na hora da divisão """
-            dss.text('set VoltageBases = "1" ')
-            dss.text('CalcVoltageBases')
-            dss.text('set maxiterations=20')
 
-            """ Este comando soluciona o fluxo de potência 
-            por padrão o OpenDSS usa o método das correntes """
-            dss.solution_solve()
 
-            """ Este comando é para ativar a leitura dos EnergyMeters """
-            dss.text('sample')
 
 
 
@@ -339,7 +393,7 @@ class Fluxo_Potencia:
 
 
         """ Esta função aplica as curvas de carga e de geração """
-        self.aplica_curvas_carga_geracao(self.irradiancia_96)
+        self.aplica_curvas_carga_geracao(self.modelagem_curva_carga, self.irradiancia_96, self.feederhead, self.mes)
 
 
 
@@ -443,11 +497,12 @@ if __name__ == "__main__":
     mes = 9
     circuit_pu = 1.029
     load_mult = 1
+    max_iteracoes = 200
 
     """ Classe """
     results = Fluxo_Potencia(alimentadores, caminhos_modelagens, circuit_pu,
                              load_mult, irradiance_96, alimentador,
                              caminho_geration_shape_fotovoltaico, medidores, curva_de_carga_pip,
-                             modelagem_curva_carga, mes)
+                             modelagem_curva_carga, mes, max_iteracoes)
 
 

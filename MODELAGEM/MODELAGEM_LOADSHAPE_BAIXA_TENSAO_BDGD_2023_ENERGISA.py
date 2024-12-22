@@ -102,14 +102,7 @@ def gerar_comandos_para_opendss_2(dbhost, dbport, dbdbname, dbuser, dbpassword):
                 potencias_ajustadas = [round(f * pot, 2) for pot in pot_values]
 
                 # Gerar o conteúdo baseado no tipo de dia
-                if tip == 'DU':
-                    command_loadshapes = {"LoadShape_dia_util": ', '.join(map(str, potencias_ajustadas))}
-                elif tip == 'SA':
-                    command_loadshapes = {"LoadShape_sabado": ', '.join(map(str, potencias_ajustadas))}
-                elif tip == 'DO':
-                    command_loadshapes = {"LoadShape_domingos_e_feriados": ', '.join(map(str, potencias_ajustadas))}
-
-                print('foi')
+                command_loadshapes = {"loadshape": potencias_ajustadas}
 
                 # Escrever no arquivo JSON
                 with open(file_path, 'w') as file:
