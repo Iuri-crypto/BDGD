@@ -23,7 +23,7 @@ layers = [
 db_params = {
     'host': 'localhost',
     'user': 'iuri',
-    "dbname": "bdgd_alimentador",
+    "dbname": "BDGD_2023_ENERGISA",
     'password': 'aa11bb22'
 }
 
