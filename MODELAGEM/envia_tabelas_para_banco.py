@@ -2,10 +2,10 @@ from osgeo import ogr
 import os
 
 # Caminho do arquivo GDB
-gdb_path = r"C:\Users\muril\OneDrive\Documentos\SEXTO_SEMESTRE\PROJETO_DE_PESQUISA\BDGD 2022 ENERGIZA MT\Energisa_MT_405_2023-12-31_V11_20240612-1317.gdb\Energisa_MT_405_2023-12-31_V11_20240612-1317.gdb"
+gdb_path = r"C:\Energisa_MT_405_2023-12-31_V11_20240612-1317.gdb"
 
 # Caminho da pasta onde os arquivos SQL serão salvos
-output_dir = r"C:\Users\muril\OneDrive\Documentos\SEXTO_SEMESTRE\PROJETO_DE_PESQUISA\BDGD 2022 ENERGIZA MT\output_sql"
+output_dir = r"C:\output_sql"
 
 # Cria o diretório de saída, se não existir
 if not os.path.exists(output_dir):

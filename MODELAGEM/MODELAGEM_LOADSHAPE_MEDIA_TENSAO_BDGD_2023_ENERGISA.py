@@ -88,6 +88,7 @@ def gerar_comandos_para_opendss_1(dbhost, dbport, dbdbname, dbuser, dbpassword):
 
             # Gerar o conteúdo baseado no tipo de dia
             command_loadshapes = {"loadshape": potencias_ajustadas}
+            print('teste')
 
             # Escrever no arquivo JSON
             with open(file_path, 'w') as file:

@@ -2,76 +2,63 @@ import psycopg2
 import os
 import time
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-def gerar_comandos_para_opendss_2(dbhost, dbport, dbdbname, dbuser, dbpassword):
-    """Função que conecta ao banco de dados, gera os comandos no formato desejado e cria os arquivos JSON para o OpenDSS"""
 
-    # Estabelecendo a conexão com o banco de dados
-    try:
-        conn = psycopg2.connect(
-            dbname=dbdbname,
-            user=dbuser,
-            password=dbpassword,
-            host=dbhost,
-            port=dbport
-        )
-        cur = conn.cursor()
-        print("Conexão Estabelecida com Sucesso.")
-    except Exception as e:
-        print(f"Erro ao conectar ao banco de dados: {e}")
-        return
+def gerar_comandos_para_opendss_2(dbhost, dbport, dbdbname, dbuser, dbpassword, batch_size=100000):
+    """Função que conecta ao banco de dados, gera os comandos no formato desejado e cria os arquivos JSON para o OpenDSS em lotes."""
 
-    # Consulta ao banco de dados
-    try:
-        query = """
-            SELECT
-                ucbt_tab.ene_01, ucbt_tab.ene_02, ucbt_tab.ene_03, ucbt_tab.ene_04, ucbt_tab.ene_05,
-                ucbt_tab.ene_06, ucbt_tab.ene_07, ucbt_tab.ene_08, ucbt_tab.ene_09, ucbt_tab.ene_10,
-                ucbt_tab.ene_11, ucbt_tab.ene_12, ucbt_tab.tip_cc, ucbt_tab.gru_ten, crvcrg.tip_dia,
-                ucbt_tab.pac, ucbt_tab.ctmt, ucbt_tab.fas_con, ucbt_tab.ten_forn,
-                crvcrg.pot_01, crvcrg.pot_02, crvcrg.pot_03, crvcrg.pot_04, crvcrg.pot_05, 
-                crvcrg.pot_06, crvcrg.pot_07, crvcrg.pot_08, crvcrg.pot_09, crvcrg.pot_10,
-                crvcrg.pot_11, crvcrg.pot_12, crvcrg.pot_13, crvcrg.pot_14, crvcrg.pot_15, 
-                crvcrg.pot_16, crvcrg.pot_17, crvcrg.pot_18, crvcrg.pot_19, crvcrg.pot_20,
-                crvcrg.pot_21, crvcrg.pot_22, crvcrg.pot_23, crvcrg.pot_24, crvcrg.pot_25, 
-                crvcrg.pot_26, crvcrg.pot_27, crvcrg.pot_28, crvcrg.pot_29, crvcrg.pot_30, 
-                crvcrg.pot_31, crvcrg.pot_32, crvcrg.pot_33, crvcrg.pot_34, crvcrg.pot_35, 
-                crvcrg.pot_36, crvcrg.pot_37, crvcrg.pot_38, crvcrg.pot_39, crvcrg.pot_40,
-                crvcrg.pot_41, crvcrg.pot_42, crvcrg.pot_43, crvcrg.pot_44, crvcrg.pot_45, 
-                crvcrg.pot_46, crvcrg.pot_47, crvcrg.pot_48, crvcrg.pot_49, crvcrg.pot_50, 
-                crvcrg.pot_51, crvcrg.pot_52, crvcrg.pot_53, crvcrg.pot_54, crvcrg.pot_55, 
-                crvcrg.pot_56, crvcrg.pot_57, crvcrg.pot_58, crvcrg.pot_59, crvcrg.pot_60,
-                crvcrg.pot_61, crvcrg.pot_62, crvcrg.pot_63, crvcrg.pot_64, crvcrg.pot_65,
-                crvcrg.pot_66, crvcrg.pot_67, crvcrg.pot_68, crvcrg.pot_69, crvcrg.pot_70,
-                crvcrg.pot_71, crvcrg.pot_72, crvcrg.pot_73, crvcrg.pot_74, crvcrg.pot_75,
-                crvcrg.pot_76, crvcrg.pot_77, crvcrg.pot_78, crvcrg.pot_79, crvcrg.pot_80,
-                crvcrg.pot_81, crvcrg.pot_82, crvcrg.pot_83, crvcrg.pot_84, crvcrg.pot_85,
-                crvcrg.pot_86, crvcrg.pot_87, crvcrg.pot_88, crvcrg.pot_89, crvcrg.pot_90,
-                crvcrg.pot_91, crvcrg.pot_92, crvcrg.pot_93, crvcrg.pot_94, crvcrg.pot_95,
-                crvcrg.pot_96, ucbt_tab.cod_id
-            FROM 
-                ucbt_tab
-            JOIN
-                crvcrg ON ucbt_tab.tip_cc = crvcrg.cod_id
-            WHERE
-                ucbt_tab.gru_ten = 'BT'
-            ORDER BY ctmt
-        """
-        cur.execute(query)
-        dados = cur.fetchall()
+    # Função para processar os dados de uma tabela
+    def processar_tabela(tabela, cur, base_dir):
+        """Processa os dados da tabela fornecida e gera arquivos JSON."""
 
-    except Exception as e:
-        print(f"Erro ao gerar comandos para o OpenDSS: {e}")
-        return
+        ctmts_processados = {}
+        linhas_processadas = 0
+        offset = 0
 
-    # Caminho principal para salvar as subpastas
-    base_dir = r'C:\MODELAGEM_LOADSHAPES_BAIXA_TENSAO_BDGD_2023_ENERGISA'
+        while True:
+            # Consulta com LIMIT e OFFSET, ajustando para pegar lotes de 100.000 linhas
+            query = f"""
+                SELECT
+                    {', '.join([f"baixa_{tabela}.ene_{i:02d}" for i in range(1, 13)])},
+                    baixa_{tabela}.tip_cc, baixa_{tabela}.gru_ten, baixa_{tabela}.tip_dia,
+                    baixa_{tabela}.pac, baixa_{tabela}.ctmt, baixa_{tabela}.fas_con,
+                    baixa_{tabela}.ten_forn,
+                    {', '.join([f"baixa_{tabela}.pot_{i:02d}" for i in range(1, 97)])},
+                    baixa_{tabela}.cod_id
+                FROM
+                    baixa_{tabela}
+                LIMIT {batch_size} OFFSET {offset}
+            """
 
-    # Dicionário para armazenar os ctmt já processados
-    ctmts_processados = {}
+            try:
+                cur.execute(query)
+                dados = cur.fetchall()
 
-    # Iterar sobre os dados e gerar uma subpasta para cada ctmt
-    for index, linha in enumerate(dados):
+                if not dados:
+                    break  # Se não houver mais dados, sai do loop
+            except Exception as e:
+                print(f"Erro ao consultar dados da tabela {tabela}: {e}")
+                break
+
+            # Processar os dados de cada linha em paralelo
+            with ThreadPoolExecutor() as executor:
+                futures = []
+                for linha in dados:
+                    futures.append(executor.submit(processar_linha, linha, ctmts_processados, base_dir))
+
+                # Aguardar o término de todas as tarefas
+                for future in as_completed(futures):
+                    future.result()  # Espera a conclusão de cada tarefa
+
+            # Atualizar o offset para o próximo lote
+            offset += batch_size
+
+        print(f"Processamento concluído para a tabela {tabela}.")
+
+    def processar_linha(linha, ctmts_processados, base_dir):
+        """Processa uma linha de dados e gera o arquivo JSON correspondente."""
+
         ene_values = linha[:12]  # ene_01 a ene_12
         tip_cc = linha[12]
         gru_ten = linha[13]
@@ -108,16 +95,46 @@ def gerar_comandos_para_opendss_2(dbhost, dbport, dbdbname, dbuser, dbpassword):
                 with open(file_path, 'w') as file:
                     json.dump(command_loadshapes, file, indent=4)
 
+    # Estabelecendo a conexão com o banco de dados
+    try:
+        conn = psycopg2.connect(
+            dbname=dbdbname,
+            user=dbuser,
+            password=dbpassword,
+            host=dbhost,
+            port=dbport
+        )
+        cur = conn.cursor()
+        print("Conexão Estabelecida com Sucesso.")
+    except Exception as e:
+        print(f"Erro ao conectar ao banco de dados: {e}")
+        return
+
+    # Caminho principal para salvar as subpastas
+    base_dir = r'C:\MODELAGEM_LOADSHAPES_BAIXA_TENSAO_BDGD_2023_ENERGISA'
+
+    # Processar os dados de todas as tabelas em paralelo
+    tabelas = ['1', '2', '3', '4', '6', '7']
+    with ThreadPoolExecutor() as executor:
+        futures = []
+        for tabela in tabelas:
+            futures.append(executor.submit(processar_tabela, tabela, cur, base_dir))
+
+        # Aguardar a conclusão de todos os processos
+        for future in as_completed(futures):
+            future.result()
+
     # Fechar a conexão com o banco de dados
     if cur:
         cur.close()
     if conn:
         conn.close()
+
     print("Conexão com o banco de dados fechada.")
     print("Arquivos gerados com sucesso.")
 
+
 # Para executar a função, basta chamar:
-# Exemplo de uso
 if __name__ == "__main__":
     host = 'localhost'
     port = '5432'
