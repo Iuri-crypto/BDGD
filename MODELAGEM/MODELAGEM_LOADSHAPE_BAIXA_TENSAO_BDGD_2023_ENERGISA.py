@@ -1,101 +1,8 @@
 import psycopg2
 import os
 import time
-import json
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
-
-def gerar_comandos_para_opendss_2(dbhost, dbport, dbdbname, dbuser, dbpassword, batch_size=100000):
-    """Função que conecta ao banco de dados, gera os comandos no formato desejado e cria os arquivos JSON para o OpenDSS em lotes."""
-
-    # Função para processar os dados de uma tabela
-    def processar_tabela(tabela, cur, base_dir):
-        """Processa os dados da tabela fornecida e gera arquivos JSON."""
-
-        ctmts_processados = {}
-        linhas_processadas = 0
-        offset = 0
-
-        while True:
-            # Consulta com LIMIT e OFFSET, ajustando para pegar lotes de 100.000 linhas
-            query = f"""
-                SELECT
-                    {', '.join([f"baixa_{tabela}.ene_{i:02d}" for i in range(1, 13)])},
-                    baixa_{tabela}.tip_cc, baixa_{tabela}.gru_ten, baixa_{tabela}.tip_dia,
-                    baixa_{tabela}.pac, baixa_{tabela}.ctmt, baixa_{tabela}.fas_con,
-                    baixa_{tabela}.ten_forn,
-                    {', '.join([f"baixa_{tabela}.pot_{i:02d}" for i in range(1, 97)])},
-                    baixa_{tabela}.cod_id
-                FROM
-                    baixa_{tabela}
-                LIMIT {batch_size} OFFSET {offset}
-            """
-
-            try:
-                cur.execute(query)
-                dados = cur.fetchall()
-
-                if not dados:
-                    break  # Se não houver mais dados, sai do loop
-            except Exception as e:
-                print(f"Erro ao consultar dados da tabela {tabela}: {e}")
-                break
-
-            # Processar os dados de cada linha em paralelo
-            with ThreadPoolExecutor() as executor:
-                futures = []
-                for linha in dados:
-                    futures.append(executor.submit(processar_linha, linha, ctmts_processados, base_dir))
-
-                # Aguardar o término de todas as tarefas
-                for future in as_completed(futures):
-                    future.result()  # Espera a conclusão de cada tarefa
-
-            # Atualizar o offset para o próximo lote
-            offset += batch_size
-
-        print(f"Processamento concluído para a tabela {tabela}.")
-
-    def processar_linha(linha, ctmts_processados, base_dir):
-        """Processa uma linha de dados e gera o arquivo JSON correspondente."""
-
-        ene_values = linha[:12]  # ene_01 a ene_12
-        tip_cc = linha[12]
-        gru_ten = linha[13]
-        tip_dia = linha[14]
-        pac = linha[15]
-        ctmt = linha[16]
-        pot_values = linha[19:115]  # pot_01 a pot_96
-        cod_id = linha[115]
-
-        # Verificar se o ctmt já foi processado
-        if ctmt not in ctmts_processados:
-            # Se o ctmt não foi processado ainda, criar uma nova pasta para o ctmt
-            ctmt_folder = os.path.join(base_dir, str(ctmt))
-            os.makedirs(ctmt_folder, exist_ok=True)
-
-        for ene_index, ene in enumerate(ene_values):
-            ene_folder = os.path.join(ctmt_folder, str(ene_index + 1))
-            os.makedirs(ene_folder, exist_ok=True)
-
-            # Criar um arquivo JSON para cada cod_id para os 3 tipos de dia
-            for tip in ['DU', 'SA', 'DO']:
-                file_name = f"{cod_id}_{tip}.json"
-                file_path = os.path.join(ene_folder, file_name)
-
-                # Calcular o fator de ajuste e as potências ajustadas
-                energia_curva_de_carga = sum(pot_values) * 0.25
-                f = (int(ene_values[ene_index]) / 30) / energia_curva_de_carga
-                potencias_ajustadas = [round(f * pot, 2) for pot in pot_values]
-
-                # Gerar o conteúdo baseado no tipo de dia
-                command_loadshapes = {"loadshape": potencias_ajustadas}
-
-                # Escrever no arquivo JSON
-                with open(file_path, 'w') as file:
-                    json.dump(command_loadshapes, file, indent=4)
-
-    # Estabelecendo a conexão com o banco de dados
+def gerar_comandos_para_opendss_1(dbhost, dbport, dbdbname, dbuser, dbpassword):
     try:
         conn = psycopg2.connect(
             dbname=dbdbname,
@@ -110,31 +17,100 @@ def gerar_comandos_para_opendss_2(dbhost, dbport, dbdbname, dbuser, dbpassword, 
         print(f"Erro ao conectar ao banco de dados: {e}")
         return
 
-    # Caminho principal para salvar as subpastas
-    base_dir = r'C:\MODELAGEM_LOADSHAPES_BAIXA_TENSAO_BDGD_2023_ENERGISA'
+    # Caminho do diretório que contém as pastas dos CTMTs (onde as pastas serão lidas)
+    base_dir = r'C:\MODELAGEM_BARRA_SLACK_MEDIA_TENSAO_BDGD_2023_ENERGISA'
 
-    # Processar os dados de todas as tabelas em paralelo
-    tabelas = ['1', '2', '3', '4', '6', '7']
-    with ThreadPoolExecutor() as executor:
-        futures = []
-        for tabela in tabelas:
-            futures.append(executor.submit(processar_tabela, tabela, cur, base_dir))
+    # Caminho do diretório onde os arquivos serão salvos
+    output_dir = r'C:\MODELAGEM_LOADSHAPES_BAIXA_TENSAO_BDGD_2023_ENERGISA'
 
-        # Aguardar a conclusão de todos os processos
-        for future in as_completed(futures):
-            future.result()
+    # Obter a lista de pastas no diretório base_dir, cada uma representando um ctmt
+    ctmts_no_diretorio = [folder for folder in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, folder))]
 
-    # Fechar a conexão com o banco de dados
+    for ctmt in ctmts_no_diretorio:
+        try:
+            offset = 0
+            limit = 100000  # Buscar dados em blocos de 100.000 por vez
+            while True:
+                # Consulta para pegar os dados do ctmt em intervalos de 100.000
+                query = f"""
+                    SELECT
+                        ucbt_tab.ene_01, ucbt_tab.ene_02, ucbt_tab.ene_03, ucbt_tab.ene_04, ucbt_tab.ene_05,
+                        ucbt_tab.ene_06, ucbt_tab.ene_07, ucbt_tab.ene_08, ucbt_tab.ene_09, ucbt_tab.ene_10,
+                        ucbt_tab.ene_11, ucbt_tab.ene_12, ucbt_tab.tip_cc, ucbt_tab.gru_ten, crvcrg.tip_dia,
+                        ucbt_tab.pac, ucbt_tab.ctmt, ucbt_tab.fas_con, ucbt_tab.ten_forn,
+                        crvcrg.pot_01, crvcrg.pot_02, crvcrg.pot_03, crvcrg.pot_04, crvcrg.pot_05, 
+                        crvcrg.pot_06, crvcrg.pot_07, crvcrg.pot_08, crvcrg.pot_09, crvcrg.pot_10,
+                        crvcrg.pot_11, crvcrg.pot_12, crvcrg.pot_13, crvcrg.pot_14, crvcrg.pot_15, 
+                        crvcrg.pot_16, crvcrg.pot_17, crvcrg.pot_18, crvcrg.pot_19, crvcrg.pot_20,
+                        crvcrg.pot_21, crvcrg.pot_22, crvcrg.pot_23, crvcrg.pot_24, crvcrg.pot_25, 
+                        crvcrg.pot_26, crvcrg.pot_27, crvcrg.pot_28, crvcrg.pot_29, crvcrg.pot_30, 
+                        crvcrg.pot_31, crvcrg.pot_32, crvcrg.pot_33, crvcrg.pot_34, crvcrg.pot_35, 
+                        crvcrg.pot_36, crvcrg.pot_37, crvcrg.pot_38, crvcrg.pot_39, crvcrg.pot_40,
+                        crvcrg.pot_41, crvcrg.pot_42, crvcrg.pot_43, crvcrg.pot_44, crvcrg.pot_45, 
+                        crvcrg.pot_46, crvcrg.pot_47, crvcrg.pot_48, crvcrg.pot_49, crvcrg.pot_50, 
+                        crvcrg.pot_51, crvcrg.pot_52, crvcrg.pot_53, crvcrg.pot_54, crvcrg.pot_55, 
+                        crvcrg.pot_56, crvcrg.pot_57, crvcrg.pot_58, crvcrg.pot_59, crvcrg.pot_60,
+                        crvcrg.pot_61, crvcrg.pot_62, crvcrg.pot_63, crvcrg.pot_64, crvcrg.pot_65,
+                        crvcrg.pot_66, crvcrg.pot_67, crvcrg.pot_68, crvcrg.pot_69, crvcrg.pot_70,
+                        crvcrg.pot_71, crvcrg.pot_72, crvcrg.pot_73, crvcrg.pot_74, crvcrg.pot_75,
+                        crvcrg.pot_76, crvcrg.pot_77, crvcrg.pot_78, crvcrg.pot_79, crvcrg.pot_80,
+                        crvcrg.pot_81, crvcrg.pot_82, crvcrg.pot_83, crvcrg.pot_84, crvcrg.pot_85,
+                        crvcrg.pot_86, crvcrg.pot_87, crvcrg.pot_88, crvcrg.pot_89, crvcrg.pot_90,
+                        crvcrg.pot_91, crvcrg.pot_92, crvcrg.pot_93, crvcrg.pot_94, crvcrg.pot_95,
+                        crvcrg.pot_96, ucbt_tab.cod_id
+                    FROM 
+                        ucbt_tab
+                    JOIN
+                        crvcrg ON ucbt_tab.tip_cc = crvcrg.cod_id
+                    WHERE
+                        ucbt_tab.ctmt = '{ctmt}'
+                    LIMIT {limit} OFFSET {offset}
+                """
+
+                cur.execute(query)
+                dados = cur.fetchall()
+
+                if not dados:
+                    break  # Se não houver dados, sair do loop
+
+                # Pasta onde os arquivos serão armazenados (diretório de saída)
+                ctmt_folder = os.path.join(output_dir, ctmt)
+                os.makedirs(ctmt_folder, exist_ok=True)
+
+                # Processar os dados para gerar os arquivos .txt
+                for index, linha in enumerate(dados):
+                    ene_values = linha[:12]
+                    tip_cc = linha[12]
+                    gru_ten = linha[13]
+                    tip_dia = linha[14]
+                    pac = linha[15]
+                    ctmt = linha[16]
+                    pot_values = linha[19:115]
+                    cod_id = linha[115]
+
+                    for ene_index, ene in enumerate(ene_values):
+                        ene_folder = os.path.join(ctmt_folder, str(ene_index + 1))
+                        os.makedirs(ene_folder, exist_ok=True)
+                        txt_file_path = os.path.join(ene_folder, f"mes_{ene_index + 1}_{tip_dia}.txt")
+                        energia_curva_de_carga = sum(pot_values) * 0.25
+                        f = (int(ene_values[ene_index]) / 30) / energia_curva_de_carga
+                        potencias_ajustadas = [round(f * pot, 2) for pot in pot_values]
+
+                        with open(txt_file_path, 'a') as file:
+                            file.write(f"{cod_id}_{tip_dia}: {potencias_ajustadas}\n")
+
+                offset += limit  # Atualiza o offset para o próximo bloco de dados
+
+        except Exception as e:
+            print(f"Erro ao processar os dados para o ctmt {ctmt}: {e}")
+
     if cur:
         cur.close()
     if conn:
         conn.close()
-
     print("Conexão com o banco de dados fechada.")
     print("Arquivos gerados com sucesso.")
 
-
-# Para executar a função, basta chamar:
 if __name__ == "__main__":
     host = 'localhost'
     port = '5432'
@@ -143,10 +119,7 @@ if __name__ == "__main__":
     password = 'aa11bb22'
 
     start_time = time.time()
-
-    # Chama a função para gerar os comandos OpenDSS
-    gerar_comandos_para_opendss_2(host, port, dbname, user, password)
-
+    gerar_comandos_para_opendss_1(host, port, dbname, user, password)
     end_time = time.time()
     execution_time = end_time - start_time
     print(f"O tempo de execução foi de {execution_time} segundos.")

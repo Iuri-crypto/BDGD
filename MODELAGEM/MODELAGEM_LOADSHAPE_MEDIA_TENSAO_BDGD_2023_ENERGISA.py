@@ -1,13 +1,8 @@
 import psycopg2
 import os
 import time
-import json
-from concurrent.futures import ThreadPoolExecutor
 
 def gerar_comandos_para_opendss_1(dbhost, dbport, dbdbname, dbuser, dbpassword):
-    """Função que conecta ao banco de dados, gera os comandos no formato desejado e cria os arquivos JSON para o OpenDSS"""
-
-    # Estabelecendo a conexão com o banco de dados
     try:
         conn = psycopg2.connect(
             dbname=dbdbname,
@@ -22,7 +17,6 @@ def gerar_comandos_para_opendss_1(dbhost, dbport, dbdbname, dbuser, dbpassword):
         print(f"Erro ao conectar ao banco de dados: {e}")
         return
 
-    # Consulta ao banco de dados
     try:
         query = """
             SELECT
@@ -60,64 +54,41 @@ def gerar_comandos_para_opendss_1(dbhost, dbport, dbdbname, dbuser, dbpassword):
         """
         cur.execute(query)
         dados = cur.fetchall()
-
     except Exception as e:
         print(f"Erro ao gerar comandos para o OpenDSS: {e}")
         return
 
-    # Caminho principal para salvar as subpastas
     base_dir = r'C:\MODELAGEM_LOADSHAPES_MEDIA_TENSAO_BDGD_2023_ENERGISA'
-
-    # Dicionário para armazenar os ctmt já processados
     ctmts_processados = {}
 
-    # Função auxiliar para gerar os arquivos JSON
-    def gerar_arquivo_json(ene_index, ene_values, pot_values, cod_id, ctmt_folder):
+    def gerar_arquivo_txt(ene_index, ene_values, pot_values, cod_id, ctmt_folder, tip_dia):
         ene_folder = os.path.join(ctmt_folder, str(ene_index + 1))
         os.makedirs(ene_folder, exist_ok=True)
+        txt_file_path = os.path.join(ene_folder, f"mes_{ene_index + 1}_{tip_dia}.txt")
+        energia_curva_de_carga = sum(pot_values) * 0.25
+        f = (int(ene_values[ene_index]) / 30) / energia_curva_de_carga
+        potencias_ajustadas = [round(f * pot, 2) for pot in pot_values]
+        with open(txt_file_path, 'a') as file:
+            file.write(f"{cod_id}_{tip_dia}: {potencias_ajustadas}\n")
 
-        # Criar um arquivo JSON para cada cod_id para os 3 tipos de dia
-        for tip in ['DU', 'SA', 'DO']:
-            file_name = f"{cod_id}_{tip}.json"
-            file_path = os.path.join(ene_folder, file_name)
+    for index, linha in enumerate(dados):
+        ene_values = linha[:12]
+        tip_cc = linha[12]
+        gru_ten = linha[13]
+        tip_dia = linha[14]
+        pac = linha[15]
+        ctmt = linha[16]
+        pot_values = linha[19:115]
+        cod_id = linha[115]
 
-            # Calcular o fator de ajuste e as potências ajustadas
-            energia_curva_de_carga = sum(pot_values) * 0.25
-            f = (int(ene_values[ene_index]) / 30) / energia_curva_de_carga
-            potencias_ajustadas = [round(f * pot, 2) for pot in pot_values]
+        if ctmt not in ctmts_processados:
+            ctmt_folder = os.path.join(base_dir, str(ctmt))
+            os.makedirs(ctmt_folder, exist_ok=True)
+            ctmts_processados[ctmt] = ctmt_folder
 
-            # Gerar o conteúdo baseado no tipo de dia
-            command_loadshapes = {"loadshape": potencias_ajustadas}
-            print('teste')
+        for ene_index, ene in enumerate(ene_values):
+            gerar_arquivo_txt(ene_index, ene_values, pot_values, cod_id, ctmts_processados[ctmt], tip_dia)
 
-            # Escrever no arquivo JSON
-            with open(file_path, 'w') as file:
-                json.dump(command_loadshapes, file, indent=4)
-
-    # Usar ThreadPoolExecutor para executar o processamento paralelo
-    with ThreadPoolExecutor() as executor:
-        for index, linha in enumerate(dados):
-            ene_values = linha[:12]  # ene_01 a ene_12
-            tip_cc = linha[12]
-            gru_ten = linha[13]
-            tip_dia = linha[14]
-            pac = linha[15]
-            ctmt = linha[16]
-            pot_values = linha[19:115]  # pot_01 a pot_96
-            cod_id = linha[115]
-
-            # Verificar se o ctmt já foi processado
-            if ctmt not in ctmts_processados:
-                # Se o ctmt não foi processado ainda, criar uma nova pasta para o ctmt
-                ctmt_folder = os.path.join(base_dir, str(ctmt))
-                os.makedirs(ctmt_folder, exist_ok=True)
-                ctmts_processados[ctmt] = ctmt_folder
-
-            # Processar a geração de arquivos JSON para cada ene_value
-            for ene_index, ene in enumerate(ene_values):
-                executor.submit(gerar_arquivo_json, ene_index, ene_values, pot_values, cod_id, ctmts_processados[ctmt])
-
-    # Fechar a conexão com o banco de dados
     if cur:
         cur.close()
     if conn:
@@ -125,8 +96,6 @@ def gerar_comandos_para_opendss_1(dbhost, dbport, dbdbname, dbuser, dbpassword):
     print("Conexão com o banco de dados fechada.")
     print("Arquivos gerados com sucesso.")
 
-# Para executar a função, basta chamar:
-# Exemplo de uso
 if __name__ == "__main__":
     host = 'localhost'
     port = '5432'
@@ -135,10 +104,7 @@ if __name__ == "__main__":
     password = 'aa11bb22'
 
     start_time = time.time()
-
-    # Chama a função para gerar os comandos OpenDSS
     gerar_comandos_para_opendss_1(host, port, dbname, user, password)
-
     end_time = time.time()
     execution_time = end_time - start_time
     print(f"O tempo de execução foi de {execution_time} segundos.")
