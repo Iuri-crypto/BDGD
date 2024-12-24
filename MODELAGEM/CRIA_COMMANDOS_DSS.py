@@ -230,102 +230,103 @@ class Fluxo_Potencia:
 
 
     def aplica_curvas_carga_geracao(self, modelagem_curva_carg_a, irradiancia_96, feederhead, me_s, max_iteracoe_s, resposta_a):
-            """ Esta função vai rodar para cada ponto da curva tanto de geração como de carga """
+        """ Esta função vai rodar para cada ponto da curva tanto de geração como de carga """
 
-            leitura_energy_meters = defaultdict(lambda: defaultdict(dict))
+        leitura_energy_meters = defaultdict(lambda: defaultdict(dict))
 
-            """ Iterar para cada um dos dias da semana (DO, DU, SA) 
-            DO: DOMINGO, DU: DIA UTIL, SA: SABADO               """
-            for dia in ["DO", "DU", "SA"]:
-
-
-                """ Iterar para cada um dos pontos das curvas """
-                for ponto_simulacao, valor in enumerate(irradiancia_96):
+        """ Iterar para cada um dos dias da semana (DO, DU, SA) 
+        DO: DOMINGO, DU: DIA UTIL, SA: SABADO               """
+        for dia in ["DO", "DU", "SA"]:
 
 
-                    """ Nomes das cargas """
-                    total_loads = dss.loads_all_names()
-
-                    """ Ativa a primeira carga """
-                    dss.loads_first()
-
-                    """ Diretórios de cargas de baixa e média tensão """
-                    d_baixa = modelagem_curva_carg_a[0]
-                    d_media = modelagem_curva_carg_a[1]
-
-                    """ Percorrer cada carga """
-                    for index, load in enumerate(total_loads):
-                        dss.circuit_set_active_element(f"load.{load}")
-
-                        """  Definir o caminho do arquivo json """
-                        baixa_tensao = os.path.join(d_baixa, str(feederhead), str(me_s), f"{load}_{dia}.json")
-                        media_tensao = os.path.join(d_media, str(feederhead), str(me_s), f"{load}_{dia}.json")
+            """ Iterar para cada um dos pontos das curvas """
+            for ponto_simulacao, valor in enumerate(irradiancia_96):
 
 
-                        """ Verificar se o caminho existe no primeiro diretório """
-                        if os.path.exists(baixa_tensao):
-                            dados = baixa_tensao
+                """ Nomes das cargas """
+                total_loads = dss.loads_all_names()
 
-                            """ Verifica se o caminho existe no segundo diretório """
-                        elif os.path.exists(media_tensao):
-                            dados = media_tensao
+                """ Ativa a primeira carga """
+                dss.loads_first()
 
-                        else:
-                            print(f"Arquivo json não encontrado para a carga: {load}")
-                            continue
+                """ Diretórios de cargas de baixa e média tensão """
+                d_baixa = modelagem_curva_carg_a[0]
+                d_media = modelagem_curva_carg_a[1]
 
-                        """ Abrir e carregar o conteúdo do arquivo json """
-                        with open(dados, 'r') as file:
-                            curva_carga = json.load(file)
+                """ Percorrer cada carga """
+                for index, load in enumerate(total_loads):
+                    dss.circuit_set_active_element(f"load.{load}")
 
-                            """ Acessando toda a curva de carga """
-                            elemento = curva_carga.get("loadshape")
-
-                            """ Acessando o elemento de interesse na lista """
-                            ponto = elemento[ponto_simulacao]
-
-                            """ Atualizando a potência da carga """
-                            dss.loads_write_kw(ponto)
-
-                    """ Chama a função para atualizar a geração fotovoltaica para a irradiancia atual """
-                    self.aplica_curvas_geracao(valor)
+                    """  Definir o caminho do arquivo json """
+                    baixa_tensao = os.path.join(d_baixa, str(feederhead), str(me_s), f"{load}_{dia}.json")
+                    media_tensao = os.path.join(d_media, str(feederhead), str(me_s), f"{load}_{dia}.json")
 
 
-                    dss.text('set VoltageBases = "1" ')
-                    dss.text('CalcVoltageBases')
-                    dss.text(f'set maxiterations={max_iteracoe_s}')
+                    """ Verificar se o caminho existe no primeiro diretório """
+                    if os.path.exists(baixa_tensao):
+                        dados = baixa_tensao
 
-                    """ Este comando soluciona o fluxo de potência 
-                    por padrão o OpenDSS usa o método das correntes """
-                    dss.solution_solve()
+                        """ Verifica se o caminho existe no segundo diretório """
+                    elif os.path.exists(media_tensao):
+                        dados = media_tensao
 
-                    """ Este comando é para ativar a leitura dos EnergyMeters """
-                    dss.text('sample')
+                    else:
+                        print(f"Arquivo json não encontrado para a carga: {load}")
+                        continue
+
+                    """ Abrir e carregar o conteúdo do arquivo json """
+                    with open(dados, 'r') as file:
+                        curva_carga = json.load(file)
+
+                        """ Acessando toda a curva de carga """
+                        elemento = curva_carga.get("loadshape")
+
+                        """ Acessando o elemento de interesse na lista """
+                        ponto = elemento[ponto_simulacao]
+
+                        """ Atualizando a potência da carga """
+                        dss.loads_write_kw(ponto)
+
+                """ Chama a função para atualizar a geração fotovoltaica para a irradiancia atual """
+                self.aplica_curvas_geracao(valor)
 
 
-                    """ Coletando dados dos energymeters de 15 em 15 minutos """
+                dss.text('set VoltageBases = "1" ')
+                dss.text('CalcVoltageBases')
+                dss.text(f'set maxiterations={max_iteracoe_s}')
 
-                    """ Setando primeiro energymeter """
-                    dss.meters_first()
+                """ Este comando soluciona o fluxo de potência 
+                por padrão o OpenDSS usa o método das correntes """
+                dss.solution_solve()
 
-                    for meter in dss.meters_all_names():
-                        dss.circuit_set_active_element(f"energymeter.{meter}")
+                """ Este comando é para ativar a leitura dos EnergyMeters """
+                dss.text('sample')
 
-                        """ Coletando todas as informações necessárias """
-                        informacoes_energy_meters = dss.meters_totals()
 
-                        """ Coleta de Enegia consumida pelas cargas """
-                        zone_kwh = informacoes_energy_meters[4]
-                        zone_kvar = informacoes_energy_meters[5]
+                """ Coletando dados dos energymeters de 15 em 15 minutos """
 
-                        """ Coleta de Energias perdidas """
-                        zone_losses_kwh = informacoes_energy_meters[12]
-                        zone_losses_kvar = informacoes_energy_meters[13]
 
-                        leitura_energy_meters[meter][dia]["zone_kwh"] = zone_kwh
-                        leitura_energy_meters[meter][dia]["zone_kvar"] = zone_kvar
-                        leitura_energy_meters[meter][dia]["zone_losses_kwh"] = zone_losses_kwh
-                        leitura_energy_meters[meter][dia]["zone_losses_kvar"] = zone_losses_kvar
+                """ Setando primeiro energymeter """
+                dss.meters_first()
+
+                for meter in dss.meters_all_names():
+                    dss.circuit_set_active_element(f"energymeter.{meter}")
+
+                    """ Coletando todas as informações necessárias """
+                    informacoes_energy_meters = dss.meters_totals()
+
+                    """ Coleta de Enegia consumida pelas cargas """
+                    zone_kwh = informacoes_energy_meters[4]
+                    zone_kvar = informacoes_energy_meters[5]
+
+                    """ Coleta de Energias perdidas """
+                    zone_losses_kwh = informacoes_energy_meters[12]
+                    zone_losses_kvar = informacoes_energy_meters[13]
+
+                    leitura_energy_meters[meter][dia]["zone_kwh"] = zone_kwh
+                    leitura_energy_meters[meter][dia]["zone_kvar"] = zone_kvar
+                    leitura_energy_meters[meter][dia]["zone_losses_kwh"] = zone_losses_kwh
+                    leitura_energy_meters[meter][dia]["zone_losses_kvar"] = zone_losses_kvar
 
 
 
