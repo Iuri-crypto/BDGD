@@ -1,8 +1,10 @@
-import json
 import os
-import numpy as np
 import py_dss_interface
 from collections import defaultdict
+import numpy as np
+import json
+from concurrent.futures import ThreadPoolExecutor
+
 
 dss = py_dss_interface.DSSDLL()
 
@@ -193,6 +195,9 @@ class Fluxo_Potencia:
 
 
     def inserir_energy_meters(self, respost_a):
+        """
+            Esta função insere os energymeters
+        """
         if respost_a == 'não':
             print(f'Não será feito análise de perdas não técnicas no alimentador: {self.feederhead}')
         else:
@@ -229,10 +234,19 @@ class Fluxo_Potencia:
 
 
 
-    def aplica_curvas_carga_geracao(self, modelagem_curva_carg_a, irradiancia_96, feederhead, me_s, max_iteracoe_s, resposta_a):
+    def aplica_curvas_carga_geracao(self, modelagem_curva_carg_a, irradiancia_96, feederhead, me_s, max_iteracoe_s):
         """ Esta função vai rodar para cada ponto da curva tanto de geração como de carga """
 
-        leitura_energy_meters = defaultdict(lambda: defaultdict(dict))
+        dss.text('set VoltageBases = "13.8, 0.22, 0.38" ')
+        dss.text('CalcVoltageBases')
+        dss.text(f'set maxiterations={max_iteracoe_s}')
+
+        """ Este comando soluciona o fluxo de potência 
+        por padrão o OpenDSS usa o método das correntes """
+        dss.solution_solve()
+        dss.text('sample')
+
+        leitura_energy_meters = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
 
         """ Iterar para cada um dos dias da semana (DO, DU, SA) 
         DO: DOMINGO, DU: DIA UTIL, SA: SABADO               """
@@ -242,24 +256,25 @@ class Fluxo_Potencia:
             """ Iterar para cada um dos pontos das curvas """
             for ponto_simulacao, valor in enumerate(irradiancia_96):
 
+                """Zerar os valores acumulados pelos energy meters """
+                dss.text('reset')
+
 
                 """ Nomes das cargas """
                 total_loads = dss.loads_all_names()
-
-                """ Ativa a primeira carga """
-                dss.loads_first()
 
                 """ Diretórios de cargas de baixa e média tensão """
                 d_baixa = modelagem_curva_carg_a[0]
                 d_media = modelagem_curva_carg_a[1]
 
                 """ Percorrer cada carga """
+                dss.loads_first()
                 for index, load in enumerate(total_loads):
                     dss.circuit_set_active_element(f"load.{load}")
 
                     """  Definir o caminho do arquivo json """
-                    baixa_tensao = os.path.join(d_baixa, str(feederhead), str(me_s), f"{load}_{dia}.json")
-                    media_tensao = os.path.join(d_media, str(feederhead), str(me_s), f"{load}_{dia}.json")
+                    baixa_tensao = os.path.join(d_baixa, str(feederhead), str(me_s), f"mes_{mes}_{dia}.txt")
+                    media_tensao = os.path.join(d_media, str(feederhead), str(me_s), f"mes_{mes}_{dia}.txt")
 
 
                     """ Verificar se o caminho existe no primeiro diretório """
@@ -274,24 +289,34 @@ class Fluxo_Potencia:
                         print(f"Arquivo json não encontrado para a carga: {load}")
                         continue
 
-                    """ Abrir e carregar o conteúdo do arquivo json """
+                    """ Abrir e carregar o conteúdo do arquivo txt """
                     with open(dados, 'r') as file:
-                        curva_carga = json.load(file)
+                        for line in file:
 
-                        """ Acessando toda a curva de carga """
-                        elemento = curva_carga.get("loadshape")
+                            """ verificar se a linha contém a carga corepsondente """
+                            if f"{load}_{dia}" in line:
 
-                        """ Acessando o elemento de interesse na lista """
-                        ponto = elemento[ponto_simulacao]
+                                """ Encontrar a lista de valores na linha """
+                                _, valores_str = line.split(': ')
 
-                        """ Atualizando a potência da carga """
-                        dss.loads_write_kw(ponto)
+                                """ Converte cada string em linha de floats """
+                                valores = eval(valores_str)
+
+                                """ Selecionando o valor correto com base no ponto de simulação """
+                                ponto = valores[ponto_simulacao]
+
+                                """ Atualizando a potência da carga """
+                                dss.loads_write_kw(ponto)
+                                break
+
+
+                        dss.loads_next()
 
                 """ Chama a função para atualizar a geração fotovoltaica para a irradiancia atual """
                 self.aplica_curvas_geracao(valor)
 
 
-                dss.text('set VoltageBases = "1" ')
+                dss.text('set VoltageBases = "13.8, 0.22, 0.38" ')
                 dss.text('CalcVoltageBases')
                 dss.text(f'set maxiterations={max_iteracoe_s}')
 
@@ -300,11 +325,8 @@ class Fluxo_Potencia:
                 dss.solution_solve()
 
                 """ Este comando é para ativar a leitura dos EnergyMeters """
-                dss.text('sample')
-
-
                 """ Coletando dados dos energymeters de 15 em 15 minutos """
-
+                dss.text('sample')
 
                 """ Setando primeiro energymeter """
                 dss.meters_first()
@@ -323,10 +345,25 @@ class Fluxo_Potencia:
                     zone_losses_kwh = informacoes_energy_meters[12]
                     zone_losses_kvar = informacoes_energy_meters[13]
 
-                    leitura_energy_meters[meter][dia]["zone_kwh"] = zone_kwh
-                    leitura_energy_meters[meter][dia]["zone_kvar"] = zone_kvar
-                    leitura_energy_meters[meter][dia]["zone_losses_kwh"] = zone_losses_kwh
-                    leitura_energy_meters[meter][dia]["zone_losses_kvar"] = zone_losses_kvar
+                    """ Armazenando no dicionário """
+                    leitura_energy_meters[meter][dia][ponto_simulacao]["zone_kwh"] = zone_kwh
+                    leitura_energy_meters[meter][dia][ponto_simulacao]["zone_kvar"] = zone_kvar
+                    leitura_energy_meters[meter][dia][ponto_simulacao]["zone_losses_kwh"] = zone_losses_kwh
+                    leitura_energy_meters[meter][dia][ponto_simulacao]["zone_losses_kvar"] = zone_losses_kvar
+
+                    dss.meters_next()
+
+                """ Printando ponto da simulaçao atual """
+                print(f"ponto da simulação: {ponto_simulacao}")
+
+
+            print("cheguei")
+
+        """ Salvar o dicionário como json """
+        output_file = r'C:/BDGD/ultimamodelagem/MODELAGEM/DADOS GERADOS/leitura_energy_meters_pycharm.json'
+        with open(output_file, 'w', encoding= 'utf-8') as json_file:
+            json.dump(leitura_energy_meters, json_file, ensure_ascii=False, indent=4)
+            print(f"Dados salvos no arquivo {output_file}")
 
 
 
@@ -394,7 +431,7 @@ class Fluxo_Potencia:
 
 
         """ Esta função aplica as curvas de carga e de geração """
-        self.aplica_curvas_carga_geracao(self.modelagem_curva_carga, self.irradiancia_96, self.feederhead, self.mes)
+        self.aplica_curvas_carga_geracao(self.modelagem_curva_carg_a, self.irradiancia_96, self.feederhead, self.me_s, self.max_iteracoe_s)
 
 
 
